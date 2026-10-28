@@ -19,7 +19,7 @@ PROJECT_TITLE = (
     "en redes domésticas mediante gestión de direcciones IP"
 )
 PROJECT_SHORT_NAME = "NetGuard Home IP"
-PROJECT_VERSION = "1.0.0-tesis"
+PROJECT_VERSION = "1.0.0 (Avance 35%)"
 
 
 def sanitize_database_uri(uri: str) -> str:
