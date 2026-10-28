@@ -3,7 +3,8 @@
 ## Documento de Entrega: Primer Avance Funcional (35% del Sistema)
 **Carrera**: Ingeniería en Sistemas Computacionales  
 **Nivel del Proyecto**: Prototipo Funcional de Tesis Universitaria — Fase 1  
-**Repositorio de Evidencia**: Git / GitHub  
+**Repositorio Oficial**: [https://github.com/GITALETS/NetGuard](https://github.com/GITALETS/NetGuard)  
+**Tablero de Seguimiento (GitHub Projects)**: [Cronograma de Desarrollo - Tesis NetGuard (Kanban)](https://github.com/users/GITALETS/projects/3)  
 
 ---
 
@@ -138,18 +139,18 @@ Para ejecutar la suite de pruebas unitarias y de integración:
 
 ---
 
-## 7. Instrucciones para Subir a GitHub como Evidencia
+## 7. Repositorio Oficial y Evidencia de Titulación
 
-1. Abre tu cuenta en [GitHub.com](https://github.com) y crea un nuevo repositorio llamado:  
-   `tesis-red-domestica-administracion-ip` (puedes elegirlo público o privado según la normativa de tu universidad).
-2. En la terminal de esta carpeta, ejecuta:
+El código fuente y cronograma de este primer avance se encuentran versionados en GitHub:
+- **Repositorio**: [https://github.com/GITALETS/NetGuard](https://github.com/GITALETS/NetGuard)
+- **Tablero Kanban de Tesis**: [Cronograma de Desarrollo - Tesis NetGuard](https://github.com/users/GITALETS/projects/3)
+- **Rama principal**: `main`
+
+Para sincronizar futuros cambios desde esta carpeta:
 ```powershell
-git init
 git add .
-git commit -m "Primer Avance de Tesis (35%): Arquitectura, Base de Datos MySQL, Autenticación y Gestión de Dispositivos e IPs"
-git branch -M main
-git remote add origin https://github.com/TU_USUARIO/tesis-red-domestica-administracion-ip.git
-git push -u origin main
+git commit -m "docs: Registro de avances o ajustes del sistema"
+git push origin main
 ```
 > **Nota de Seguridad**: Gracias al archivo `.gitignore` incluido, tu contraseña de MySQL y tus secretos locales de `.env` **nunca se subirán a GitHub**, protegiendo la seguridad de tu entorno.
 
