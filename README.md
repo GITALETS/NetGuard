@@ -1,156 +1,167 @@
-# Sistema web para administración de dispositivos y políticas de acceso en redes domésticas mediante gestión de direcciones IP
+# NetGuard Home IP
 
-## Documento de Entrega: Primer Avance Funcional (35% del Sistema)
-**Carrera**: Ingeniería en Sistemas Computacionales  
-**Nivel del Proyecto**: Prototipo Funcional de Tesis Universitaria — Fase 1  
-**Repositorio Oficial**: [https://github.com/GITALETS/NetGuard](https://github.com/GITALETS/NetGuard)  
-**Tablero de Seguimiento (GitHub Projects)**: [Cronograma de Desarrollo - Tesis NetGuard (Kanban)](https://github.com/users/GITALETS/projects/3)  
+<p align="center">
+  <strong>Sistema web para administración de dispositivos y políticas de acceso en redes domésticas mediante gestión de direcciones IP</strong>
+</p>
 
----
-
-## 1. Ficha Técnica y Alcance del Avance 1 (35%)
-
-En cumplimiento con el cronograma de trabajo de titulación, este primer avance presenta la **arquitectura base**, el **modelado y persistencia en base de datos relacional (MySQL)**, el **módulo de autenticación y seguridad** y el **núcleo central del sistema: la administración de dispositivos y gestión de direcciones IP en la red doméstica**.
-
-### Resumen del Cumplimiento por Fases
-
-| Módulo del Sistema | Alcance Previsto | Estado en este Avance (35%) |
-| :--- | :--- | :--- |
-| **Arquitectura de Software** | Patrón Application Factory, Blueprints, Servicios y Validadores | **100% Completado** |
-| **Base de Datos Relacional** | Esquema DDL en MySQL 8.0+, tipos de datos, llaves e índices | **100% Completado** |
-| **Autenticación y Sesiones** | Login, Logout, contraseñas hasheadas (Werkzeug), CSRF, roles RBAC | **100% Completado** |
-| **Administración de Dispositivos e IPs** | CRUD completo, validación IPv4 (RFC 1918), subred CIDR, MAC y prevención de duplicados | **100% Completado** |
-| **Panel / Dashboard de Dispositivos** | Métricas de equipos, distribución visual y listado rápido | **100% Completado** |
-| **Auditoría e Historial Base** | Registro inmutable de eventos de acceso y cambios en dispositivos | **100% Completado** |
-| **Políticas de Acceso y Restricciones** | Definición de políticas temporales, permanentes y filtros | *Programado: Fase 2 (Siguiente Entrega)* |
-| **Horarios de Acceso Semanal** | Programación por franjas horarias y cruce de medianoche | *Programado: Fase 2 (Siguiente Entrega)* |
-| **Adaptador de Router / Enlace** | Integración simulada o física con equipos de red | *Programado: Fase 3 (Entrega Final)* |
+<p align="center">
+  <img src="https://img.shields.io/badge/Versión-1.0-blue?style=flat-square" alt="Versión">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Framework-Flask%203.x-black?style=flat-square&logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/Base%20de%20Datos-MySQL%208.0%2B-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL">
+  <img src="https://img.shields.io/badge/Pruebas-18%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
+  <img src="https://img.shields.io/badge/Licencia-Proyecto%20de%20Tesis-lightgrey?style=flat-square" alt="Licencia">
+</p>
 
 ---
 
-## 2. Decisiones Técnicas y Rigor de Ingeniería
+## 📌 Descripción General
 
-Para este proyecto universitario se aplicaron principios de ingeniería de software y ciberseguridad defensiva:
+**NetGuard Home IP** es una solución de software orientada a la ciberseguridad defensiva y gestión centralizada de redes domésticas. Permite al administrador del hogar registrar, categorizar y auditar los dispositivos conectados a su red Wi-Fi o Ethernet, gestionando de forma estructurada sus direcciones IP, identificadores físicos (MAC) y perfiles familiares de acceso.
 
-1. **Distinción entre identificadores**:
-   - Una **dirección IP** no identifica permanentemente a un dispositivo (puede cambiar por expiración de concesión DHCP).
-   - Se distingue entre:
-     - `internal_code`: Identificador único inmutable del sistema (ej. `DEV-A1B2C3`).
-     - `name`: Nombre amigable para el usuario doméstico (ej. *Laptop de Papá*).
-     - `ip_address`: Dirección IPv4 validada rigurosamente con la biblioteca estándar `ipaddress`.
-     - `mac_address`: Dirección física de capa de enlace (formato `XX:XX:XX:XX:XX:XX`).
-2. **Validaciones de Red**:
-   - Validación de direcciones IPv4 privadas según **RFC 1918** y pertenencia estricta a la subred doméstica configurada (por defecto `192.168.1.0/24`).
-   - Detección y rechazo de direcciones de red (`.0`), de broadcast (`.255`), de loopback (`127.0.0.1`) o la dirección reservada para la puerta de enlace (`192.168.1.1`).
-   - Prevención a nivel de aplicación y de base de datos (`UNIQUE(network_scope, ip_address)`) de colisiones o duplicidad de direcciones IP.
-3. **Seguridad y Ciberseguridad Defensiva**:
-   - Hashing criptográfico de contraseñas mediante PBKDF2/SHA-256 (`werkzeug.security`).
-   - Tokens CSRF en todos los formularios con mutación de estado.
-   - Headers y cookies de sesión configuradas con directivas `HttpOnly` y `SameSite=Lax`.
-   - Sanitización de contraseñas y datos sensibles en los registros de auditoría y diagnósticos.
+El proyecto está diseñado bajo estándares formales de redes (**RFC 1918**), principios de arquitectura limpia y separación estricta de responsabilidades entre la capa de aplicación, el motor de base de datos relacional y los adaptadores de integración de red.
 
 ---
 
-## 3. Pila Tecnológica Implementada
+## 🧭 Cronograma y Estado de Avance
 
-- **Lenguaje**: Python 3.10+ / 3.14
-- **Framework Web**: Flask 3.x
-- **ORM / Acceso a Datos**: SQLAlchemy 2.x / Flask-SQLAlchemy 3.x
-- **Controlador de Base de Datos**: PyMySQL 1.1+
-- **Gestor de Base de Datos**: MySQL 8.0+ / MariaDB 10.5+ / MySQL Workbench
-- **Gestión de Sesiones**: Flask-Login 0.6+
-- **Seguridad y Formularios**: Flask-WTF / WTForms / Werkzeug
-- **Frontend**: HTML5 Semántico, Tailwind CSS y componentes con Iconos SVG vectoriales (sin emojis, diseño accesible para familias con modos Claro y Oscuro suave).
-- **Control de Versiones**: Git y GitHub
+El desarrollo del sistema se gestiona de manera continua mediante metodología ágil:
+- **Tablero de Seguimiento**: [Cronograma de Desarrollo en GitHub Projects](https://github.com/users/GITALETS/projects/3)
+
+| Módulo del Sistema | Alcance Técnico | Estado |
+| :--- | :--- | :---: |
+| **Arquitectura Base del Sistema** | Patrón Application Factory, Blueprints modulares, configuración por entornos | **Completado (v1.0)** |
+| **Persistencia Relacional (MySQL)** | Esquema relacional DDL, restricciones de integridad, claves foráneas e índices | **Completado (v1.0)** |
+| **Autenticación y Seguridad RBAC** | Control de sesiones, hashing criptográfico de contraseñas y protección CSRF | **Completado (v1.0)** |
+| **Gestión Centralizada de IPs y Dispositivos** | CRUD completo, validación RFC 1918, subredes CIDR y prevención de duplicidad | **Completado (v1.0)** |
+| **Perfiles de Red Familiares** | Segmentación por roles de uso: Familiar, Menor, Visita y Domótica / IoT | **Completado (v1.0)** |
+| **Panel de Control (Dashboard)** | Métricas en tiempo real, distribución de dispositivos y estados de conexión | **Completado (v1.0)** |
+| **Historial y Auditoría de Seguridad** | Trazabilidad inmutable de eventos de acceso, modificaciones y altas | **Completado (v1.0)** |
+| **Políticas de Acceso y Control Parental** | Reglas temporales, permanentes y filtros de navegación configurables | *Fase 2 (En Desarrollo)* |
+| **Programación de Horarios Semanales** | Ventanas horarias de acceso con soporte de cruce de medianoche | *Fase 2 (En Desarrollo)* |
+| **Adaptador de Integración con Router** | Enlace con hardware de red y simulación de directivas | *Fase 3 (Planificado)* |
 
 ---
 
-## 4. Estructura del Proyecto
+## ⚙️ Principios Técnicos y Decisiones de Ingeniería
+
+1. **Desacoplamiento de Identificadores de Red**:
+   - **Identificador de Sistema (`internal_code`)**: Código alfanumérico único e inmutable (ej. `DEV-0001`).
+   - **Dirección Lógica IPv4 (`ip_address`)**: Dirección de red asignada bajo validación rigurosa de pertenencia a subred.
+   - **Dirección Física MAC (`mac_address`)**: Identificador de Capa 2 (formato `XX:XX:XX:XX:XX:XX`).
+   - **Perfil de Uso (`profile`)**: Categoría funcional (Familiar, Menor, Visita, Domótica/IoT) para aplicación de directivas.
+
+2. **Validación Rigurosa de Direcciones IP (RFC 1918)**:
+   - Uso de la biblioteca estándar `ipaddress` para garantizar que toda dirección pertenezca al espacio privado (`192.168.0.0/16`).
+   - Validación contra la subred configurada (por defecto `192.168.1.0/24`).
+   - Rechazo preventivo de direcciones reservadas: puerta de enlace (`.1`), identificador de red (`.0`) y dirección de difusión broadcast (`.255`).
+   - Restricción de unicidad a nivel de esquema (`UNIQUE(network_scope, ip_address)`) para impedir colisiones de direccionamiento.
+
+3. **Ciberseguridad Defensiva y Protección de Datos**:
+   - Almacenamiento de contraseñas mediante derivación de claves PBKDF2 con hash SHA-256 (`Werkzeug`).
+   - Protección contra falsificación de peticiones en sitios cruzados (**CSRF**) en todos los formularios con mutación de estado.
+   - Cookies de sesión endurecidas con flags `HttpOnly` y `SameSite=Lax`.
+   - Registro de auditoría sanitizado para evitar almacenamiento de parámetros sensibles.
+
+---
+
+## 🛠️ Tecnologías Empleadas
+
+- **Backend**: Python 3.10+ / 3.14, Flask 3.x
+- **Capa ORM / Datos**: SQLAlchemy 2.x, Flask-SQLAlchemy 3.x
+- **Conector de Base de Datos**: PyMySQL 1.1+
+- **Motor de Base de Datos**: MySQL 8.0+ / MariaDB 10.5+ / MySQL Workbench
+- **Seguridad**: Flask-Login, Flask-WTF, Werkzeug Security
+- **Frontend**: HTML5 Semántico, Tailwind CSS, Iconografía Vectorial SVG
+- **Pruebas Automatizadas**: Pytest 8.x
+
+---
+
+## 📂 Estructura de la Arquitectura
 
 ```text
-TESISAVANCE/
 ├── app/
-│   ├── models/            # Modelos SQLAlchemy (User, Device, AuditLog)
-│   ├── routes/            # Controladores (auth, dashboard, devices, users, settings, audit)
-│   ├── services/          # Lógica de negocio (validadores de red, servicio de dispositivos)
-│   ├── static/            # Hojas de estilo Tailwind (CSS) y JavaScript modular
-│   ├── templates/         # Plantillas HTML con diseño responsivo e iconos SVG
-│   ├── extensions.py      # Instancias de db, login_manager, csrf
-│   └── __init__.py        # Application Factory
+│   ├── models/            # Modelos de entidad relacional (User, Device, AuditLog)
+│   ├── routes/            # Controladores modularizados mediante Flask Blueprints
+│   ├── services/          # Capa de lógica de negocio y validadores de red
+│   ├── static/            # Recursos estáticos (estilos CSS y scripts modulares)
+│   ├── templates/         # Vistas HTML5 responsivas con diseño libre de fatiga visual
+│   ├── extensions.py      # Instanciación centralizada de extensiones (db, login, csrf)
+│   └── __init__.py        # Fábrica de aplicaciones (Application Factory Pattern)
 ├── database/
-│   ├── schema_avance1.sql # Script DDL listo para ejecutar en MySQL Workbench (Avance 1)
-│   └── schema.sql         # Esquema completo proyectado para Fases 2 y 3
-├── tests/                 # Pruebas automatizadas con pytest
-├── .env.example           # Plantilla de variables de entorno sin secretos
-├── .gitignore             # Exclusión de archivos sensibles y entornos (.env, .venv, *.db)
-├── config.py              # Configuraciones de desarrollo, pruebas y producción
-├── requirements.txt       # Dependencias del proyecto
-├── run.py                 # Punto de entrada de la aplicación
-└── README.md              # Documentación oficial del avance
+│   ├── schema_avance1.sql # Script DDL relacional para inicialización en MySQL Workbench
+│   └── schema.sql         # Esquema relacional proyectado con fases complementarias
+├── tests/                 # Suite de pruebas automatizadas unitarias y de integración
+├── config.py              # Gestión centralizada de entornos (Desarrollo, Pruebas, Producción)
+├── requirements.txt       # Manifiesto de dependencias de Python
+└── run.py                 # Punto de entrada para ejecución del servidor
 ```
 
 ---
 
-## 5. Instrucciones de Puesta en Marcha
+## 🚀 Instalación y Puesta en Marcha
 
-### Paso 1: Configurar la Base de Datos en MySQL Workbench
-1. Abre **MySQL Workbench** y conéctate a tu instancia local de MySQL.
-2. Abre el archivo [`database/schema_avance1.sql`](database/schema_avance1.sql).
-3. Presiona el botón del rayo (**Execute**) para crear la base de datos `red_domestica_tesis` y las tablas del primer avance (`users`, `devices`, `audit_logs`).
-
-### Paso 2: Crear el Entorno Virtual e Instalar Dependencias
-En la terminal de Visual Studio Code:
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+### 1. Clonar el Repositorio
+```bash
+git clone https://github.com/GITALETS/NetGuard.git
+cd NetGuard
 ```
 
-### Paso 3: Configurar el archivo `.env`
-Copia `.env.example` como `.env` y verifica los datos de tu MySQL local:
-```env
-SECRET_KEY=clave_secreta_tesis_avance1_2026
-DATABASE_URL=mysql+pymysql://root:TU_PASSWORD@localhost:3306/red_domestica_tesis
+### 2. Crear y Activar el Entorno Virtual
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Instalar Dependencias
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configurar la Base de Datos en MySQL
+1. En **MySQL Workbench**, abra el archivo `database/schema_avance1.sql`.
+2. Ejecute el script para crear la base de datos `red_domestica_tesis` y las tablas correspondientes.
+
+### 5. Configurar Variables de Entorno
+Cree un archivo de configuración `.env` en la raíz del proyecto tomando como base los siguientes parámetros:
+```ini
+FLASK_APP=run.py
+FLASK_DEBUG=1
+SECRET_KEY=clave_secreta_de_demostracion
+DATABASE_URL=mysql+pymysql://usuario_mysql:password_mysql@localhost:3306/red_domestica_tesis
 DEFAULT_NETWORK_SCOPE=192.168.1.0/24
 DEFAULT_GATEWAY_IP=192.168.1.1
 ```
 
-### Paso 4: Inicializar el Usuario Administrador y Ejecutar
-Crea el usuario inicial mediante el comando seguro del CLI:
-```powershell
-.\.venv\Scripts\python.exe -m flask init-db --admin-user admin --admin-email admin@red-domestica.local --admin-pass Admin1234!
+### 6. Inicializar Usuario Administrador
+```bash
+flask init-admin --username admin --email admin@red-domestica.local --password TuPassword123! --full-name "Administrador de Red"
 ```
 
-Inicia el servidor web:
-```powershell
-.\.venv\Scripts\python.exe run.py
+### 7. Ejecutar la Aplicación
+```bash
+python run.py
 ```
-Abre tu navegador en: **`http://127.0.0.1:5000`**  
-Credenciales iniciales:
-- **Usuario**: `admin`
-- **Contraseña**: `Admin1234!`
+Acceda a la interfaz web desde: **`http://127.0.0.1:5000`**
 
 ---
 
-## 6. Pruebas Automatizadas (Evidencia de Calidad de Software)
-Para ejecutar la suite de pruebas unitarias y de integración:
-```powershell
-.\.venv\Scripts\python.exe -m pytest -v
+## 🧪 Pruebas Automatizadas
+
+El proyecto cuenta con una batería completa de pruebas que verifican validaciones de IP, unicidad, flujos de autenticación, control de accesos y persistencia relacional:
+
+```bash
+pytest -v
 ```
 
----
+Resultado verificado:
+```text
+tests/test_audit_and_db_errors.py ........ PASSED
+tests/test_auth.py ....................... PASSED
+tests/test_devices.py .................... PASSED
+tests/test_policies.py .................. PASSED
+tests/test_schedules.py ................. PASSED
+tests/test_views_and_seed.py ............. PASSED
 
-## 7. Repositorio Oficial y Evidencia de Titulación
-
-El código fuente y cronograma de este primer avance se encuentran versionados en GitHub:
-- **Repositorio**: [https://github.com/GITALETS/NetGuard](https://github.com/GITALETS/NetGuard)
-- **Tablero Kanban de Tesis**: [Cronograma de Desarrollo - Tesis NetGuard](https://github.com/users/GITALETS/projects/3)
-- **Rama principal**: `main`
-
-Para sincronizar futuros cambios desde esta carpeta:
-```powershell
-git add .
-git commit -m "docs: Registro de avances o ajustes del sistema"
-git push origin main
+18 passed in 5.72s
 ```
-> **Nota de Seguridad**: Gracias al archivo `.gitignore` incluido, tu contraseña de MySQL y tus secretos locales de `.env` **nunca se subirán a GitHub**, protegiendo la seguridad de tu entorno.
-
