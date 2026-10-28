@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Ajustes y Sistema{% endblock %}
+{% block page_header %}Ajustes del Sistema y Ejemplos de Prueba{% endblock %}
+{% block page_subtitle %}Administra los datos de ejemplo del hogar y consulta el estado general del sistema{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Fila 1: Ejemplos de Demostración + Estado General del Sistema -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Gestión amigable de datos de demostración -->
+    <div class="surface-card p-6 flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="border-b border-slate-800 pb-3">
+          <h2 class="text-base font-bold theme-text-primary inline-flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+            Equipos de Ejemplo (Modo Demostración)
+          </h2>
+          <p class="text-xs theme-text-secondary">Prueba el sistema con aparatos familiares de ejemplo sin afectar tu red</p>
+        </div>
+
+        <div class="surface-subtle p-4 text-sm space-y-1.5">
+          <div class="font-bold theme-text-primary">
+            Aparatos de ejemplo activos ahora: <span class="text-lg font-mono-code">{{ db_health.record_counts.demo_devices }}</span>
+          </div>
+          <p class="text-xs theme-text-secondary leading-relaxed">
+            Puedes cargar un hogar de ejemplo completo (con televisión, laptop, celular, tablet infantil con horario y cámara) o borrar solo los ejemplos dejando intactos los aparatos que tú hayas registrado.
+          </p>
+        </div>
+      </div>
+
+      {% if current_user.can_modify %}
+      <div class="flex flex-col sm:flex-row gap-3 pt-2 border-t border-slate-800">
+        <form method="POST" action="{{ url_for('settings.seed_demo') }}" class="flex-1">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn-primary w-full">
+            Cargar Ejemplos de Casa
+          </button>
+        </form>
+
+        <form
+          method="POST"
+          action="{{ url_for('settings.clear_demo') }}"
+          data-confirm-title="Quitar equipos de ejemplo"
+          data-confirm-message="¿Deseas quitar los aparatos de ejemplo? Los dispositivos que tú hayas agregado manualmente se conservarán."
+          class="flex-1"
+        >
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="btn-secondary w-full">
+            Quitar Solo Ejemplos
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Estado de Conexión a Base de Datos -->
+    <div class="surface-card p-6 space-y-4">
+      <div class="border-b border-slate-800 pb-3 flex items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-bold theme-text-primary">Estado de Conexión a Base de Datos</h2>
+          <p class="text-xs theme-text-secondary">Comprobación automática de almacenamiento</p>
+        </div>
+        {% if db_health.connected %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Funcionando ({{ db_health.latency_ms }} ms)
+          </span>
+        {% else %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-950 text-rose-300 border border-rose-700/60">
+            Sin conexión
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="surface-subtle p-3">
+          <div class="font-bold text-xl theme-text-primary">{{ db_health.record_counts.devices }}</div>
+          <div class="text-xs theme-text-secondary">Equipos</div>
+        </div>
+        <div class="surface-subtle p-3">
+          <div class="font-bold text-xl theme-text-primary">{{ db_health.record_counts.policies }}</div>
+          <div class="text-xs theme-text-secondary">Permisos</div>
+        </div>
+        <div class="surface-subtle p-3">
+          <div class="font-bold text-xl theme-text-primary">{{ db_health.record_counts.schedules }}</div>
+          <div class="text-xs theme-text-secondary">Horarios</div>
+        </div>
+      </div>
+
+      <div class="surface-subtle p-3.5 text-xs space-y-1">
+        <div class="theme-text-secondary"><strong>Motor de datos:</strong> {{ db_health.engine_label }}</div>
+        <div class="theme-text-muted truncate"><strong>Red del hogar:</strong> <span class="font-mono-code">{{ app_info.default_scope }}</span> (Router: <span class="font-mono-code">{{ app_info.default_gateway }}</span>)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modo de Operación del Router -->
+  <div class="surface-card p-6 space-y-4">
+    <div class="border-b border-slate-800 pb-3 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-base font-bold theme-text-primary">Modo de Funcionamiento con el Router</h2>
+        <p class="text-xs theme-text-secondary">Elige cómo deseas que trabaje la aplicación durante tus pruebas</p>
+      </div>
+      <span class="px-3 py-1 rounded-lg text-xs font-semibold bg-cyan-950 text-cyan-300 border border-cyan-700/60">
+        {{ adapter_info.display_name }}
+      </span>
+    </div>
+
+    <p class="text-sm theme-text-secondary leading-relaxed">
+      {{ adapter_info.limitations_notice }}
+    </p>
+
+    {% if current_user.can_modify %}
+    <form method="POST" action="{{ url_for('settings.switch_adapter') }}" class="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <select id="adapter_mode" name="adapter_mode" class="form-select-dark sm:max-w-md">
+        <option value="lab_simulator" {% if adapter_info.adapter_id == 'lab_simulator' %}selected{% endif %}>
+          Simulador de Laboratorio (Recomendado para demostración)
+        </option>
+        <option value="passive_only" {% if adapter_info.adapter_id == 'passive_only' %}selected{% endif %}>
+          Solo Guardar en Lista (Sin simulador de router)
+        </option>
+      </select>
+      <button type="submit" class="btn-primary shrink-0">
+        Cambiar Modo
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Diagnóstico Técnico de Tesis en Desplegable Limpio -->
+  <details class="surface-card p-5">
+    <summary class="cursor-pointer text-sm font-bold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      Información técnica para evaluación de Tesis (Arquitectura, BD y Directivas)
+    </summary>
+    <div class="mt-4 pt-4 border-t border-slate-800 space-y-4 text-xs">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="surface-subtle p-4 space-y-1.5">
+          <div class="font-bold theme-text-primary">Proyecto Universitario:</div>
+          <div class="theme-text-secondary">{{ app_info.project_title }}</div>
+          <div class="theme-text-muted pt-1">
+            Versión: <span class="font-mono-code">{{ app_info.version }}</span> &bull; Python <span class="font-mono-code">{{ app_info.python_version }}</span> &bull;
+            CSRF: <strong>{{ 'Activo' if app_info.csrf_enabled else 'Inactivo' }}</strong>
+          </div>
+        </div>
+
+        <div class="surface-subtle p-4 space-y-1.5">
+          <div class="font-bold theme-text-primary">Cadena de Conexión Sanitizada (Sin Secretos):</div>
+          <code class="font-mono-code block break-all theme-text-secondary">{{ db_health.safe_uri }}</code>
+          <div class="theme-text-muted pt-1">
+            Usuarios: {{ db_health.record_counts.users }} &bull; Eventos Auditoría: {{ db_health.record_counts.audit_logs }} &bull; Logs Adaptador: {{ db_health.record_counts.router_sync_logs }}
+          </div>
+        </div>
+      </div>
+
+      {% if recent_sync_logs %}
+      <div class="space-y-2">
+        <div class="font-bold theme-text-primary">Últimas directivas generadas por el adaptador ({{ adapter_info.adapter_class }}):</div>
+        {% for rlog in recent_sync_logs[:5] %}
+          <div class="surface-subtle p-3 space-y-1">
+            <div class="font-mono-code text-[11px] theme-text-muted">
+              #{{ rlog.id }} &bull; {{ rlog.operation }} &bull; {{ rlog.created_at.strftime('%d/%m/%Y %H:%M:%S') if rlog.created_at else '' }}
+            </div>
+            <pre class="p-2 rounded bg-slate-900 font-mono-code text-cyan-300 overflow-x-auto whitespace-pre-wrap">{{ rlog.command_preview }}</pre>
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </details>
+
+</div>
+{% endblock %}

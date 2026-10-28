@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}{% if schedule %}Editar Horario{% else %}Nuevo Horario{% endif %}{% endblock %}
+{% block page_header %}{% if schedule %}Editar Horario: {{ schedule.label }}{% else %}Configurar Nuevo Horario Familiar{% endif %}{% endblock %}
+{% block page_subtitle %}Elige qué días y en qué horas podrá usarse (o pausarse) el aparato seleccionado{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('schedules.index') }}" class="btn-secondary">
+    &larr; Volver a Horarios
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form
+    method="POST"
+    action="{% if schedule %}{{ url_for('schedules.edit', schedule_id=schedule.id) }}{% else %}{{ url_for('schedules.create') }}{% endif %}"
+    class="surface-card p-6 sm:p-8 space-y-6"
+    novalidate
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label for="label" class="block text-sm font-semibold theme-text-primary mb-1">
+          Nombre para reconocer este horario <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="label"
+          name="label"
+          type="text"
+          required
+          maxlength="120"
+          value="{{ form_data.get('label', '') }}"
+          placeholder="Ej. Hora de dormir de los niños, Tardes de tarea"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="device_id" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿A qué aparato se le aplica? <span class="text-rose-400">*</span>
+        </label>
+        <select id="device_id" name="device_id" class="form-select-dark">
+          {% for dev in devices %}
+            <option value="{{ dev.id }}" {% if form_data.get('device_id')|int == dev.id %}selected{% endif %}>
+              {{ dev.name }} ({{ dev.ip_address }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="window_behavior" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿Qué hará durante esas horas?
+        </label>
+        <select id="window_behavior" name="window_behavior" class="form-select-dark">
+          <option value="allowed_window" {% if form_data.get('window_behavior') == 'allowed_window' %}selected{% endif %}>
+            Permitir usar Internet en estas horas
+          </option>
+          <option value="restricted_window" {% if form_data.get('window_behavior') == 'restricted_window' %}selected{% endif %}>
+            Pausar / Bloquear Internet en estas horas
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="border-t border-slate-800 pt-5 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <label class="block text-sm font-semibold theme-text-primary">
+          ¿En qué días de la semana aplica? <span class="text-rose-400">*</span>
+        </label>
+        <!-- Botones rápidos de selección con 1 clic -->
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" data-select-days="0,1,2,3,4" class="btn-secondary text-xs py-1 px-2.5">
+            Lun a Vie
+          </button>
+          <button type="button" data-select-days="5,6" class="btn-secondary text-xs py-1 px-2.5">
+            Fin de semana
+          </button>
+          <button type="button" data-select-days="0,1,2,3,4,5,6" class="btn-secondary text-xs py-1 px-2.5">
+            Todos los días
+          </button>
+        </div>
+      </div>
+
+      {% set selected_days = form_data.get('days_of_week', []) %}
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {% for d_idx, d_name in schedule_Model.DAY_NAMES.items() %}
+          <label class="surface-subtle p-3 flex items-center gap-2 cursor-pointer text-sm hover:border-blue-500">
+            <input
+              type="checkbox"
+              name="days_of_week"
+              value="{{ d_idx }}"
+              {% if (d_idx|string in selected_days) or (d_idx in selected_days) %}checked{% endif %}
+              class="rounded text-blue-600"
+            />
+            <span class="font-medium theme-text-primary">{{ d_name }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label for="schedule_start_time" class="block text-sm font-semibold theme-text-primary mb-1">
+          Hora de inicio <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="schedule_start_time"
+          name="start_time"
+          type="time"
+          required
+          value="{{ form_data.get('start_time', '08:00') }}"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="schedule_end_time" class="block text-sm font-semibold theme-text-primary mb-1">
+          Hora de fin <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="schedule_end_time"
+          name="end_time"
+          type="time"
+          required
+          value="{{ form_data.get('end_time', '20:00') }}"
+          class="form-input-dark"
+        />
+      </div>
+    </div>
+
+    <div id="schedule_window_preview" class="surface-subtle p-4 text-sm theme-text-secondary">
+      Calculando duración del horario...
+    </div>
+
+    <div>
+      <label class="inline-flex items-center gap-2.5 cursor-pointer text-sm theme-text-primary font-medium">
+        <input
+          type="checkbox"
+          name="is_active"
+          value="1"
+          {% if form_data.get('is_active', True) %}checked{% endif %}
+          class="rounded text-blue-600"
+        />
+        <span>Dejar este horario encendido y activo desde hoy</span>
+      </label>
+    </div>
+
+    <!-- Opciones adicionales en desplegable -->
+    <details class="surface-subtle p-4">
+      <summary class="cursor-pointer text-xs font-semibold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Opciones adicionales (Vincular con regla específica o nota)
+      </summary>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-800">
+        <div>
+          <label for="policy_id" class="block text-xs font-semibold theme-text-secondary mb-1">Vincular a una regla (Opcional)</label>
+          <select id="policy_id" name="policy_id" class="form-select-dark">
+            <option value="">-- Ninguna (aplicar directo al aparato) --</option>
+            {% for pol in policies %}
+              <option value="{{ pol.id }}" {% if form_data.get('policy_id')|string == pol.id|string %}selected{% endif %}>
+                {{ pol.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="enforcement_note" class="block text-xs font-semibold theme-text-secondary mb-1">Nota familiar</label>
+          <input
+            id="enforcement_note"
+            name="enforcement_note"
+            type="text"
+            maxlength="255"
+            value="{{ form_data.get('enforcement_note', '') }}"
+            placeholder="Ej. Horario de clases entre semana"
+            class="form-input-dark"
+          />
+        </div>
+      </div>
+    </details>
+
+    <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+      <a href="{{ url_for('schedules.index') }}" class="btn-secondary">
+        Cancelar
+      </a>
+      <button
+        type="submit"
+        data-loading-text="Guardando..."
+        class="btn-primary px-6 py-2.5"
+      >
+        {% if schedule %}Guardar Cambios{% else %}Guardar Horario{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

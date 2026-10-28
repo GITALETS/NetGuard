@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import device_type_icon, device_status_badge, router_sync_badge, demo_badge %}
+
+{% block title %}Mis Dispositivos{% endblock %}
+{% block page_header %}Dispositivos de la Familia{% endblock %}
+{% block page_subtitle %}Equipos registrados en casa (celulares, computadoras, televisiones, consolas y tabletas){% endblock %}
+
+{% block header_actions %}
+  {% if current_user.can_modify %}
+    <a href="{{ url_for('devices.create') }}" class="btn-primary">
+      + Agregar Dispositivo
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Barra sencilla de búsqueda y filtros -->
+  <form method="GET" action="{{ url_for('devices.index') }}" class="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+    <div>
+      <label for="q" class="block text-xs font-semibold theme-text-secondary mb-1">Buscar equipo o persona</label>
+      <input
+        id="q"
+        name="q"
+        type="text"
+        value="{{ q }}"
+        placeholder="Ej. Laptop, Sala, 192.168..."
+        class="form-input-dark"
+      />
+    </div>
+
+    <div>
+      <label for="status" class="block text-xs font-semibold theme-text-secondary mb-1">Permiso actual</label>
+      <select id="status" name="status" class="form-select-dark">
+        <option value="">Todos los permisos</option>
+        {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
+          <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="device_type" class="block text-xs font-semibold theme-text-secondary mb-1">Tipo de aparato</label>
+      <select id="device_type" name="device_type" class="form-select-dark">
+        <option value="">Todos los aparatos</option>
+        {% for key, label in device_Model.TYPE_LABELS.items() %}
+          <option value="{{ key }}" {% if type_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button type="submit" class="btn-primary flex-1">
+        Buscar
+      </button>
+      <a href="{{ url_for('devices.index') }}" class="btn-secondary">
+        Ver todos
+      </a>
+    </div>
+  </form>
+
+  <!-- Listado de dispositivos -->
+  <div class="surface-card overflow-hidden">
+    {% if devices %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Aparato / De quién es</th>
+              <th>Tipo de equipo</th>
+              <th>Dirección IP</th>
+              <th>Permiso de Acceso</th>
+              <th>Estado en Sistema</th>
+              <th class="text-right">Opciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dev in devices %}
+            <tr>
+              <td>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xl shrink-0">
+                    {{ device_type_icon(dev.device_type) }}
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="font-bold text-sm theme-text-primary hover:underline">
+                        {{ dev.name }}
+                      </a>
+                      {{ demo_badge(dev.is_demo) }}
+                    </div>
+                    <div class="text-xs theme-text-secondary">
+                      {{ dev.owner_label or 'Uso general en casa' }} &bull; <span class="font-mono-code text-[11px]">{{ dev.internal_code }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td class="text-sm theme-text-secondary whitespace-nowrap">
+                {{ dev.type_label }}
+              </td>
+
+              <td class="whitespace-nowrap">
+                <div class="font-mono-code font-semibold text-sm theme-text-primary">{{ dev.ip_address }}</div>
+                {% if dev.mac_address %}
+                  <div class="text-[11px] font-mono-code theme-text-muted">MAC: {{ dev.mac_address }}</div>
+                {% endif %}
+              </td>
+
+              <td class="whitespace-nowrap">
+                {{ device_status_badge(dev.admin_status, dev.admin_status_label) }}
+              </td>
+
+              <td class="whitespace-nowrap">
+                {{ router_sync_badge(dev.router_sync_status, dev.router_sync_label) }}
+              </td>
+
+              <td class="text-right whitespace-nowrap">
+                <div class="inline-flex items-center gap-2">
+                  <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="btn-secondary">
+                    Ver ficha
+                  </a>
+                  {% if current_user.can_modify %}
+                    <a href="{{ url_for('devices.edit', device_id=dev.id) }}" class="btn-secondary">
+                      Editar
+                    </a>
+                    <form
+                      method="POST"
+                      action="{{ url_for('devices.delete', device_id=dev.id) }}"
+                      data-confirm-title="Eliminar {{ dev.name }}"
+                      data-confirm-message="¿Deseas quitar '{{ dev.name }}' de la lista de equipos de casa?"
+                      class="inline"
+                    >
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60">
+                        Quitar
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="p-10 text-center space-y-3">
+        <div class="text-base font-bold theme-text-primary">No encontramos dispositivos con esa búsqueda</div>
+        <p class="text-xs theme-text-secondary max-w-md mx-auto">
+          Puedes limpiar los filtros o registrar un nuevo aparato de tu casa en unos segundos.
+        </p>
+        {% if current_user.can_modify %}
+          <div class="pt-2">
+            <a href="{{ url_for('devices.create') }}" class="btn-primary">
+              + Agregar Dispositivo
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import device_type_icon, device_status_badge, router_sync_badge, audit_severity_badge, demo_badge %}
+
+{% block title %}Inicio y Resumen{% endblock %}
+{% block page_header %}Resumen de tu Red en Casa{% endblock %}
+{% block page_subtitle %}Panel General de Estado de Red Doméstica — Consulta de forma sencilla los equipos y horarios de tu familia{% endblock %}
+
+{% block header_actions %}
+  {% if current_user.can_modify %}
+    <a href="{{ url_for('devices.create') }}" class="btn-primary">
+      <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      <span>Agregar Dispositivo</span>
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Aviso amigable cuando están cargados los ejemplos de demostración -->
+  {% if metrics.has_demo_data %}
+  <div class="p-4 rounded-2xl bg-indigo-950/50 border border-indigo-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-300 flex items-center justify-center shrink-0 mt-0.5">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="text-xs font-bold uppercase tracking-wide text-indigo-200">
+          DATOS DE DEMOSTRACIÓN IDENTIFICADOS ({{ metrics.demo_devices_count }} equipos de ejemplo)
+        </div>
+        <p class="text-xs text-indigo-300/90 mt-0.5">
+          Estás viendo equipos de ejemplo para conocer cómo funciona la aplicación. Puedes probar con ellos o borrarlos cuando quieras desde Ajustes.
+        </p>
+      </div>
+    </div>
+    <a href="{{ url_for('settings.index') }}" class="btn-secondary shrink-0">
+      Ir a Ajustes
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- 4 Tarjetas principales con iconografía SVG uniforme -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <a href="{{ url_for('devices.index') }}" class="surface-card p-5 hover:border-blue-500 transition-colors block">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold theme-text-secondary">Equipos en Casa</span>
+        <div class="w-9 h-9 rounded-xl bg-blue-600/15 text-blue-500 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-2 text-3xl font-bold theme-text-primary">{{ metrics.total_devices }}</div>
+      <div class="mt-1 text-xs theme-text-muted">Total de aparatos registrados</div>
+    </a>
+
+    <a href="{{ url_for('devices.index', status='authorized') }}" class="surface-card p-5 hover:border-emerald-500 transition-colors block">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold theme-text-secondary">Acceso Permitido</span>
+        <div class="w-9 h-9 rounded-xl bg-emerald-600/15 text-emerald-500 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-2 text-3xl font-bold text-emerald-400">{{ metrics.authorized_devices }}</div>
+      <div class="mt-1 text-xs theme-text-muted">Más {{ metrics.restricted_devices }} con horario familiar</div>
+    </a>
+
+    <a href="{{ url_for('devices.index', status='blocked') }}" class="surface-card p-5 hover:border-rose-500 transition-colors block">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold theme-text-secondary">Pausados o Nuevos</span>
+        <div class="w-9 h-9 rounded-xl bg-rose-600/15 text-rose-500 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-2 text-3xl font-bold text-rose-400">{{ metrics.blocked_or_unauthorized }}</div>
+      <div class="mt-1 text-xs theme-text-muted">{{ metrics.blocked_devices }} bloqueados &bull; {{ metrics.pending_devices }} por revisar</div>
+    </a>
+
+    <a href="{{ url_for('policies.index') }}" class="surface-card p-5 hover:border-blue-500 transition-colors block">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold theme-text-secondary">Permisos Activos Hoy</span>
+        <div class="w-9 h-9 rounded-xl bg-cyan-600/15 text-cyan-500 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-2 text-3xl font-bold text-cyan-400">{{ metrics.active_policies_count }}</div>
+      <div class="mt-1 text-xs theme-text-muted">De {{ metrics.total_policies }} reglas guardadas</div>
+    </a>
+  </div>
+
+  <!-- Guía rápida de 3 pasos para cualquier miembro de la familia -->
+  {% if current_user.can_modify %}
+  <div class="surface-card p-5">
+    <h2 class="text-base font-bold theme-text-primary mb-1">¿Qué te gustaría hacer hoy?</h2>
+    <p class="text-xs theme-text-secondary mb-4">Elige una opción rápida sin necesidad de configuraciones complicadas:</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <a href="{{ url_for('devices.create') }}" class="surface-subtle p-4 hover:border-blue-500 transition-colors flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-blue-600/15 text-blue-600 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-sm theme-text-primary">1. Registrar un aparato</div>
+          <p class="text-xs theme-text-secondary mt-0.5">Agrega un celular, tablet, consola, televisión o computadora de la familia.</p>
+        </div>
+      </a>
+
+      <a href="{{ url_for('policies.create') }}" class="surface-subtle p-4 hover:border-blue-500 transition-colors flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-emerald-600/15 text-emerald-600 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-sm theme-text-primary">2. Dar permiso o bloquear</div>
+          <p class="text-xs theme-text-secondary mt-0.5">Autoriza el Wi-Fi a una visita por unas horas o pausa el internet de un equipo.</p>
+        </div>
+      </a>
+
+      <a href="{{ url_for('schedules.create') }}" class="surface-subtle p-4 hover:border-blue-500 transition-colors flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-amber-600/15 text-amber-600 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-sm theme-text-primary">3. Poner horario familiar</div>
+          <p class="text-xs theme-text-secondary mt-0.5">Define a qué hora pueden conectarse (por ejemplo, tardes de tarea o descanso nocturno).</p>
+        </div>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Fila central: Equipos de la familia + Estado general -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Lista visual de equipos recientes -->
+    <div class="surface-card p-5 lg:col-span-2">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-bold theme-text-primary">Equipos de la Familia</h2>
+          <p class="text-xs theme-text-secondary">Vista rápida de los aparatos registrados en casa</p>
+        </div>
+        <a href="{{ url_for('devices.index') }}" class="btn-secondary">Ver todos ({{ metrics.total_devices }})</a>
+      </div>
+
+      {% if metrics.recent_devices %}
+        <div class="space-y-3">
+          {% for dev in metrics.recent_devices %}
+            <div class="surface-subtle p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 theme-text-primary flex items-center justify-center shrink-0">
+                  {{ device_type_icon(dev.device_type) }}
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="font-bold text-sm theme-text-primary hover:underline truncate">
+                      {{ dev.name }}
+                    </a>
+                    {{ demo_badge(dev.is_demo) }}
+                  </div>
+                  <div class="text-xs theme-text-secondary truncate">
+                    {{ dev.owner_label or dev.type_label }} &bull; IP: <span class="font-mono-code">{{ dev.ip_address }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                {{ device_status_badge(dev.admin_status, dev.admin_status_label) }}
+                <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="btn-secondary">Ver</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="py-8 text-center border border-dashed border-slate-800 rounded-xl space-y-3">
+          <p class="text-sm font-semibold theme-text-primary">Todavía no has registrado ningún equipo</p>
+          <p class="text-xs theme-text-secondary">Agrega el primer aparato de tu casa o carga los datos de ejemplo para explorar.</p>
+          {% if current_user.can_modify %}
+            <div class="flex items-center justify-center gap-3 pt-1">
+              <a href="{{ url_for('devices.create') }}" class="btn-primary">Agregar mi primer equipo</a>
+              <form method="POST" action="{{ url_for('settings.seed_demo') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn-secondary">Cargar ejemplos de prueba</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Resumen visual por estado -->
+    <div class="surface-card p-5 flex flex-col justify-between">
+      <div>
+        <h2 class="text-base font-bold theme-text-primary mb-1">Resumen de Permisos</h2>
+        <p class="text-xs theme-text-secondary mb-4">¿Cómo están configurados tus equipos?</p>
+
+        <div class="space-y-4">
+          {% for item in metrics.distribution %}
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1.5">
+                <span class="font-semibold theme-text-primary">{{ item.label }}</span>
+                <span class="theme-text-secondary font-medium">{{ item.count }} ({{ item.percentage }}%)</span>
+              </div>
+              <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full {% if item.color == 'emerald' %}bg-emerald-500{% elif item.color == 'amber' %}bg-amber-500{% elif item.color == 'rose' %}bg-rose-500{% else %}bg-slate-400{% endif %}"
+                  style="width: {{ item.percentage }}%"
+                ></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Detalles técnicos ocultos en desplegable limpio -->
+      <details class="mt-6 pt-4 border-t border-slate-800 text-xs">
+        <summary class="cursor-pointer font-semibold theme-text-secondary hover:underline">
+          Ver detalles técnicos (Sincronización BD / Router)
+        </summary>
+        <div class="mt-3 space-y-2 theme-text-secondary">
+          <div class="flex justify-between"><span>Guardadas en Base de Datos:</span> <strong>{{ metrics.enforcement_counts.stored_in_db }}</strong></div>
+          <div class="flex justify-between"><span>En Simulador de Laboratorio:</span> <strong>{{ metrics.enforcement_counts.simulated_in_lab }}</strong></div>
+          <div class="flex justify-between"><span>En Router Físico Real:</span> <strong>{{ metrics.enforcement_counts.applied_in_router }}</strong></div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- Fila inferior: Próximos Horarios Familiares + Últimos Movimientos -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Próximos horarios -->
+    <div class="surface-card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div>
+            <h2 class="text-base font-bold theme-text-primary">Próximos Horarios Familiares</h2>
+            <p class="text-xs theme-text-secondary">{{ metrics.active_schedules_count }} horarios programados activos</p>
+          </div>
+        </div>
+        <a href="{{ url_for('schedules.index') }}" class="btn-secondary">Ver horarios</a>
+      </div>
+
+      {% if metrics.upcoming_windows %}
+        <div class="space-y-3">
+          {% for win in metrics.upcoming_windows %}
+            <div class="surface-subtle p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  {% if win.is_ongoing %}
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">Activo en este momento</span>
+                  {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 theme-text-secondary">Próximo</span>
+                  {% endif %}
+                  <span class="font-bold text-sm theme-text-primary">{{ win.schedule.label }}</span>
+                </div>
+                <div class="text-xs theme-text-secondary mt-1">
+                  Equipo: <strong>{{ win.device.name }}</strong>
+                  {% if win.crosses_midnight %}&bull; Horario nocturno{% endif %}
+                </div>
+              </div>
+              <div class="text-xs font-mono-code theme-text-secondary sm:text-right whitespace-nowrap">
+                <div>De: {{ win.window_start.strftime('%d/%m %H:%M') }}</div>
+                <div>A: &nbsp;{{ win.window_end.strftime('%d/%m %H:%M') }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
+          No hay horarios programados en este momento.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Actividad reciente -->
+    <div class="surface-card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <div>
+            <h2 class="text-base font-bold theme-text-primary">Últimos Cambios Realizados</h2>
+            <p class="text-xs theme-text-secondary">Registro de actividad reciente en el hogar</p>
+          </div>
+        </div>
+        <a href="{{ url_for('audit.index') }}" class="btn-secondary">Ver historial</a>
+      </div>
+
+      {% if metrics.recent_audit_logs %}
+        <div class="space-y-2.5">
+          {% for log in metrics.recent_audit_logs[:5] %}
+            <div class="surface-subtle p-3 text-xs flex items-start justify-between gap-3">
+              <div class="space-y-0.5 min-w-0">
+                <div class="font-semibold theme-text-primary">{{ log.description }}</div>
+                <div class="theme-text-muted text-[11px]">Por: {{ log.username_snapshot or 'Sistema' }}</div>
+              </div>
+              <span class="font-mono-code text-[11px] theme-text-muted whitespace-nowrap shrink-0">
+                {{ log.created_at.strftime('%d/%m %H:%M') if log.created_at else '' }}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
+          Sin actividad reciente.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

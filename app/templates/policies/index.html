@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import policy_status_badge, policy_action_badge, router_sync_badge, demo_badge %}
+
+{% block title %}Permisos de Acceso{% endblock %}
+{% block page_header %}Permisos y Reglas de Acceso{% endblock %}
+{% block page_subtitle %}Administra quién tiene permiso de usar el internet, por cuánto tiempo y con qué filtros{% endblock %}
+
+{% block header_actions %}
+  {% if current_user.can_modify %}
+    <a href="{{ url_for('policies.create') }}" class="btn-primary">
+      + Crear Permiso o Regla
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Filtros sencillos -->
+  <form method="GET" action="{{ url_for('policies.index') }}" class="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+    <div>
+      <label for="device_id" class="block text-xs font-semibold theme-text-secondary mb-1">Filtrar por aparato</label>
+      <select id="device_id" name="device_id" class="form-select-dark">
+        <option value="">Todos los aparatos</option>
+        {% for dev in devices %}
+          <option value="{{ dev.id }}" {% if device_id == dev.id %}selected{% endif %}>{{ dev.name }} ({{ dev.ip_address }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="policy_type" class="block text-xs font-semibold theme-text-secondary mb-1">Tipo de regla</label>
+      <select id="policy_type" name="policy_type" class="form-select-dark">
+        <option value="">Todos los tipos</option>
+        {% for key, label in policy_Model.POLICY_TYPE_LABELS.items() %}
+          <option value="{{ key }}" {% if type_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="status" class="block text-xs font-semibold theme-text-secondary mb-1">¿Está activa hoy?</label>
+      <select id="status" name="status" class="form-select-dark">
+        <option value="">Todas</option>
+        {% for key, label in policy_Model.STATUS_LABELS.items() %}
+          <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button type="submit" class="btn-primary flex-1">
+        Buscar
+      </button>
+      <a href="{{ url_for('policies.index') }}" class="btn-secondary">
+        Ver todas
+      </a>
+    </div>
+  </form>
+
+  <!-- Tabla de permisos -->
+  <div class="surface-card overflow-hidden">
+    {% if policies %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre de la Regla</th>
+              <th>Aparato Familiar</th>
+              <th>Acción y Categoría</th>
+              <th>Duración / Vencimiento</th>
+              <th>Estado Actual</th>
+              <th class="text-right">Opciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pol in policies %}
+            <tr>
+              <td>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <a href="{{ url_for('policies.detail', policy_id=pol.id) }}" class="font-bold text-sm theme-text-primary hover:underline">
+                    {{ pol.name }}
+                  </a>
+                  {{ demo_badge(pol.is_demo) }}
+                </div>
+                {% if pol.description %}
+                  <div class="text-xs theme-text-secondary mt-0.5">{{ pol.description }}</div>
+                {% endif %}
+              </td>
+
+              <td class="whitespace-nowrap">
+                <a href="{{ url_for('devices.detail', device_id=pol.device.id) }}" class="font-semibold text-sm theme-text-primary hover:underline block">
+                  {{ pol.device.name }}
+                </a>
+                <span class="text-xs font-mono-code theme-text-muted">{{ pol.device.ip_address }}</span>
+              </td>
+
+              <td class="whitespace-nowrap">
+                <div class="mb-1">{{ policy_action_badge(pol.action, pol.action_label) }}</div>
+                <div class="text-xs theme-text-secondary">{{ pol.policy_type_label }}</div>
+              </td>
+
+              <td class="text-xs theme-text-secondary whitespace-nowrap">
+                <div>Desde: {{ pol.valid_from.strftime('%d/%m/%Y %H:%M') if pol.valid_from else '' }}</div>
+                <div>Hasta: <strong>{{ pol.valid_until.strftime('%d/%m/%Y %H:%M') if pol.valid_until else 'Sin vencimiento' }}</strong></div>
+              </td>
+
+              <td class="whitespace-nowrap">
+                {{ policy_status_badge(pol.effective_status, pol.effective_status_label) }}
+              </td>
+
+              <td class="text-right whitespace-nowrap">
+                <div class="inline-flex items-center gap-2">
+                  <a href="{{ url_for('policies.detail', policy_id=pol.id) }}" class="btn-secondary">
+                    Ver
+                  </a>
+                  {% if current_user.can_modify %}
+                    <a href="{{ url_for('policies.edit', policy_id=pol.id) }}" class="btn-secondary">
+                      Editar
+                    </a>
+                    <form
+                      method="POST"
+                      action="{{ url_for('policies.delete', policy_id=pol.id) }}"
+                      data-confirm-title="Eliminar permiso"
+                      data-confirm-message="¿Deseas eliminar la regla '{{ pol.name }}'?"
+                      class="inline"
+                    >
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60">
+                        Quitar
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="p-10 text-center space-y-3">
+        <div class="text-base font-bold theme-text-primary">No hay reglas configuradas con ese filtro</div>
+        <p class="text-xs theme-text-secondary max-w-md mx-auto">
+          Crea un permiso temporal para visitas, un filtro familiar o un permiso permanente para tus equipos de casa.
+        </p>
+        {% if current_user.can_modify %}
+          <div class="pt-2">
+            <a href="{{ url_for('policies.create') }}" class="btn-primary">
+              + Crear Permiso o Regla
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

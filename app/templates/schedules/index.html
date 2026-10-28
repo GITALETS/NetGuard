@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import demo_badge %}
+
+{% block title %}Horarios de Uso{% endblock %}
+{% block page_header %}Horarios Familiares de Uso{% endblock %}
+{% block page_subtitle %}Programa a qué horas pueden usar el Wi-Fi los aparatos de casa (estudio, tarde o descanso nocturno){% endblock %}
+
+{% block header_actions %}
+  {% if current_user.can_modify %}
+    <a href="{{ url_for('schedules.create') }}" class="btn-primary">
+      + Nuevo Horario Familiar
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Filtro por aparato y comprobador de hora -->
+  <form method="GET" action="{{ url_for('schedules.index') }}" class="surface-card p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+    <div>
+      <label for="device_id" class="block text-xs font-semibold theme-text-secondary mb-1">Ver horarios de un aparato</label>
+      <select id="device_id" name="device_id" class="form-select-dark">
+        <option value="">Todos los aparatos de casa</option>
+        {% for dev in devices %}
+          <option value="{{ dev.id }}" {% if device_id == dev.id %}selected{% endif %}>{{ dev.name }} ({{ dev.ip_address }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="eval_datetime" class="block text-xs font-semibold theme-text-secondary mb-1">
+        Comprobar cómo aplica en otra fecha/hora {% if custom_eval_used %}(Hora de prueba){% endif %}
+      </label>
+      <input
+        id="eval_datetime"
+        name="eval_datetime"
+        type="datetime-local"
+        value="{{ eval_dt_str }}"
+        class="form-input-dark"
+      />
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button type="submit" class="btn-primary flex-1">
+        Comprobar
+      </button>
+      <a href="{{ url_for('schedules.index') }}" class="btn-secondary">
+        Hora actual
+      </a>
+    </div>
+  </form>
+
+  <!-- Próximas activaciones visuales -->
+  <div class="surface-card p-5">
+    <h2 class="text-base font-bold theme-text-primary mb-1">
+      Próximos Horarios ({{ eval_dt.strftime('%d/%m/%Y %H:%M') }})
+    </h2>
+    <p class="text-xs theme-text-secondary mb-4">Así funcionarán los horarios de tu casa en las próximas horas:</p>
+
+    {% if upcoming_windows %}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5">
+        {% for win in upcoming_windows %}
+          <div class="surface-subtle p-4 space-y-2 {% if win.is_ongoing %}border-emerald-600/70{% endif %}">
+            <div class="flex items-center justify-between gap-2">
+              {% if win.is_ongoing %}
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">Activo ahora</span>
+              {% else %}
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 theme-text-secondary">Próximo</span>
+              {% endif %}
+              {% if win.crosses_midnight %}
+                <span class="text-xs theme-text-muted inline-flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                  Nocturno
+                </span>
+              {% endif %}
+            </div>
+            <div class="font-bold text-sm theme-text-primary truncate">{{ win.schedule.label }}</div>
+            <div class="text-xs theme-text-secondary truncate">Aparato: <strong>{{ win.device.name }}</strong></div>
+            <div class="pt-2 border-t border-slate-800/80 text-xs theme-text-secondary">
+              <div>De: <strong>{{ win.window_start.strftime('%d/%m %H:%M') }}</strong></div>
+              <div>A: &nbsp;<strong>{{ win.window_end.strftime('%d/%m %H:%M') }}</strong></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="py-6 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
+        No hay horarios activos en este momento.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Tabla de horarios programados -->
+  <div class="surface-card overflow-hidden">
+    {% if schedules %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre del Horario</th>
+              <th>Aparato Familiar</th>
+              <th>Días de la Semana</th>
+              <th>Horas</th>
+              <th>Estado</th>
+              <th class="text-right">Opciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sch in schedules %}
+            {% set active_now = sch.is_in_window_at(eval_dt) %}
+            <tr>
+              <td>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-sm theme-text-primary">{{ sch.label }}</span>
+                  {{ demo_badge(sch.is_demo) }}
+                </div>
+                <div class="text-xs mt-0.5 inline-flex items-center gap-1 {% if sch.window_behavior == 'allowed_window' %}text-emerald-400{% else %}text-amber-400{% endif %}">
+                  {% if sch.window_behavior == 'allowed_window' %}
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Permitir uso en este horario
+                  {% else %}
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    Pausar internet en este horario
+                  {% endif %}
+                </div>
+              </td>
+
+              <td class="whitespace-nowrap">
+                <a href="{{ url_for('devices.detail', device_id=sch.device.id) }}" class="font-semibold text-sm theme-text-primary hover:underline block">
+                  {{ sch.device.name }}
+                </a>
+                <span class="text-xs font-mono-code theme-text-muted">{{ sch.device.ip_address }}</span>
+              </td>
+
+              <td>
+                <div class="flex flex-wrap gap-1">
+                  {% for d_idx, d_short in schedule_Model.DAY_SHORT_NAMES.items() %}
+                    <span class="px-2 py-0.5 rounded-md text-xs font-semibold {% if d_idx in sch.days_set %}bg-cyan-950 text-cyan-300 border border-cyan-700/60{% else %}bg-slate-900 theme-text-muted opacity-50{% endif %}">
+                      {{ d_short }}
+                    </span>
+                  {% endfor %}
+                </div>
+                <div class="text-xs theme-text-secondary mt-1">{{ sch.days_human_label }}</div>
+              </td>
+
+              <td class="whitespace-nowrap">
+                <div class="font-bold text-sm theme-text-primary">{{ sch.start_time }} a {{ sch.end_time }}</div>
+                {% if sch.crosses_midnight %}
+                  <span class="text-xs text-amber-300 inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    Termina a la mañana siguiente
+                  </span>
+                {% else %}
+                  <span class="text-xs theme-text-muted">Mismo día</span>
+                {% endif %}
+              </td>
+
+              <td class="whitespace-nowrap">
+                {% if not sch.is_active %}
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-800 theme-text-muted">
+                    En pausa
+                  </span>
+                {% elif active_now %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/90 text-emerald-300 border border-emerald-700/60">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Aplicando ahora
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 theme-text-secondary">
+                    En espera de su hora
+                  </span>
+                {% endif %}
+              </td>
+
+              <td class="text-right whitespace-nowrap">
+                <div class="inline-flex items-center gap-2">
+                  {% if current_user.can_modify %}
+                    <form method="POST" action="{{ url_for('schedules.toggle', schedule_id=sch.id) }}" class="inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="btn-secondary">
+                        {% if sch.is_active %}Pausar{% else %}Activar{% endif %}
+                      </button>
+                    </form>
+                    <a href="{{ url_for('schedules.edit', schedule_id=sch.id) }}" class="btn-secondary">
+                      Editar
+                    </a>
+                    <form
+                      method="POST"
+                      action="{{ url_for('schedules.delete', schedule_id=sch.id) }}"
+                      data-confirm-title="Eliminar horario"
+                      data-confirm-message="¿Deseas eliminar el horario '{{ sch.label }}'?"
+                      class="inline"
+                    >
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60">
+                        Quitar
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="p-10 text-center space-y-3">
+        <div class="text-base font-bold theme-text-primary">Aún no hay horarios configurados</div>
+        <p class="text-xs theme-text-secondary max-w-md mx-auto">
+          Programa horarios de estudio o de descanso nocturno para los aparatos de la familia.
+        </p>
+        {% if current_user.can_modify %}
+          <div class="pt-2">
+            <a href="{{ url_for('schedules.create') }}" class="btn-primary">
+              + Nuevo Horario Familiar
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

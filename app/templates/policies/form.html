@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}{% if policy %}Editar Permiso{% else %}Crear Permiso de Acceso{% endif %}{% endblock %}
+{% block page_header %}{% if policy %}Editar Regla: {{ policy.name }}{% else %}Crear Nuevo Permiso o Regla Familiar{% endif %}{% endblock %}
+{% block page_subtitle %}Elige el aparato de casa y define qué permiso tendrá{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('policies.index') }}" class="btn-secondary">
+    &larr; Volver a Permisos
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form
+    method="POST"
+    action="{% if policy %}{{ url_for('policies.edit', policy_id=policy.id) }}{% else %}{{ url_for('policies.create') }}{% endif %}"
+    class="surface-card p-6 sm:p-8 space-y-6"
+    novalidate
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <div class="border-b border-slate-800 pb-3">
+      <h2 class="text-base font-bold theme-text-primary">1. ¿Para qué aparato es esta regla?</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label for="name" class="block text-sm font-semibold theme-text-primary mb-1">
+          Nombre de la regla <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          required
+          maxlength="120"
+          value="{{ form_data.get('name', '') }}"
+          placeholder="Ej. Permiso de fin de semana para invitados, Filtro para tablet infantil"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="device_id" class="block text-sm font-semibold theme-text-primary mb-1">
+          Selecciona el aparato <span class="text-rose-400">*</span>
+        </label>
+        <select id="device_id" name="device_id" class="form-select-dark">
+          {% for dev in devices %}
+            <option value="{{ dev.id }}" {% if form_data.get('device_id')|int == dev.id %}selected{% endif %}>
+              {{ dev.name }} ({{ dev.ip_address }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="policy_action_select" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿Qué quieres hacer con su internet?
+        </label>
+        <select id="policy_action_select" name="action" class="form-select-dark">
+          <option value="allow" {% if form_data.get('action') == 'allow' %}selected{% endif %}>Permitir acceso a Internet</option>
+          <option value="restrict" {% if form_data.get('action') == 'restrict' %}selected{% endif %}>Limitar / Con filtro familiar</option>
+          <option value="block" {% if form_data.get('action') == 'block' %}selected{% endif %}>Pausar / Bloquear acceso</option>
+        </select>
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="policy_type_select" class="block text-sm font-semibold theme-text-primary mb-1">
+          Tipo de permiso
+        </label>
+        <select id="policy_type_select" name="policy_type" class="form-select-dark">
+          {% for key, label in policy_Model.POLICY_TYPE_LABELS.items() %}
+            <option value="{{ key }}" {% if form_data.get('policy_type') == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div id="nav_profile_group" class="{% if form_data.get('policy_type') != 'navigation_restriction' %}hidden{% endif %} surface-subtle p-4 space-y-2">
+      <label for="navigation_profile" class="block text-sm font-semibold theme-text-primary">
+        ¿Qué tipo de páginas o usos deseas limitar? <span class="text-rose-400">*</span>
+      </label>
+      <input
+        id="navigation_profile"
+        name="navigation_profile"
+        type="text"
+        maxlength="160"
+        value="{{ form_data.get('navigation_profile', '') }}"
+        placeholder="Ej. Bloquear sitios para adultos y apuestas; Búsqueda segura familiar"
+        class="form-input-dark"
+      />
+    </div>
+
+    <div class="border-b border-slate-800 pb-3 pt-2">
+      <h2 class="text-base font-bold theme-text-primary">2. ¿Durante cuánto tiempo estará activa?</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label for="valid_from" class="block text-sm font-semibold theme-text-primary mb-1">
+          Empieza desde <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="valid_from"
+          name="valid_from"
+          type="datetime-local"
+          required
+          value="{{ form_data.get('valid_from', '') }}"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="valid_until_input" class="block text-sm font-semibold theme-text-primary mb-1">
+          Termina el día (Opcional)
+        </label>
+        <input
+          id="valid_until_input"
+          name="valid_until"
+          type="datetime-local"
+          value="{{ form_data.get('valid_until', '') }}"
+          class="form-input-dark"
+        />
+        <p id="valid_until_hint" class="text-[11px] theme-text-muted mt-1">
+          Déjalo vacío si quieres que dure indefinidamente.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <label for="description" class="block text-sm font-semibold theme-text-primary mb-1">Explicación o nota familiar (Opcional)</label>
+      <textarea
+        id="description"
+        name="description"
+        rows="2"
+        placeholder="Ej. Permiso para los primos durante su visita de fin de semana..."
+        class="form-textarea-dark"
+      >{{ form_data.get('description', '') }}</textarea>
+    </div>
+
+    <!-- Opciones avanzadas desplegables -->
+    <details class="surface-subtle p-4">
+      <summary class="cursor-pointer text-xs font-semibold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Opciones avanzadas (Prioridad, estado y observaciones técnicas)
+      </summary>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-800">
+        <div>
+          <label for="priority" class="block text-xs font-semibold theme-text-secondary mb-1">Prioridad (1 = más alta, 100 = más baja)</label>
+          <input
+            id="priority"
+            name="priority"
+            type="number"
+            min="1"
+            max="100"
+            value="{{ form_data.get('priority', 50) }}"
+            class="form-input-dark font-mono-code"
+          />
+        </div>
+
+        <div>
+          <label for="status" class="block text-xs font-semibold theme-text-secondary mb-1">Estado de la regla</label>
+          <select id="status" name="status" class="form-select-dark">
+            <option value="active" {% if form_data.get('status') == 'active' %}selected{% endif %}>Activa</option>
+            <option value="paused" {% if form_data.get('status') == 'paused' %}selected{% endif %}>En pausa</option>
+            <option value="revoked" {% if form_data.get('status') == 'revoked' %}selected{% endif %}>Cancelada</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-2">
+          <label for="observations" class="block text-xs font-semibold theme-text-secondary mb-1">Observaciones técnicas</label>
+          <input
+            id="observations"
+            name="observations"
+            type="text"
+            value="{{ form_data.get('observations', '') }}"
+            class="form-input-dark"
+          />
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="inline-flex items-center gap-2 text-xs theme-text-secondary cursor-pointer">
+            <input type="checkbox" name="sync_with_adapter" value="1" checked class="rounded text-blue-600" />
+            <span>Sincronizar automáticamente con el simulador de red</span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+      <a href="{{ url_for('policies.index') }}" class="btn-secondary">
+        Cancelar
+      </a>
+      <button
+        type="submit"
+        data-loading-text="Guardando..."
+        class="btn-primary px-6 py-2.5"
+      >
+        {% if policy %}Guardar Cambios{% else %}Guardar Permiso{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

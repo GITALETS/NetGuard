@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}{% if device %}Editar {{ device.name }}{% else %}Agregar Dispositivo{% endif %}{% endblock %}
+{% block page_header %}{% if device %}Editar: {{ device.name }}{% else %}Agregar un Aparato de Casa{% endif %}{% endblock %}
+{% block page_subtitle %}Completa los datos básicos del equipo. Las opciones técnicas ya vienen listas automáticamente.{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('devices.index') }}" class="btn-secondary">
+    &larr; Volver a Mis Dispositivos
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form
+    method="POST"
+    action="{% if device %}{{ url_for('devices.edit', device_id=device.id) }}{% else %}{{ url_for('devices.create') }}{% endif %}"
+    class="surface-card p-6 sm:p-8 space-y-6"
+    novalidate
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <div class="border-b border-slate-800 pb-3">
+      <h2 class="text-base font-bold theme-text-primary">Datos Principales del Equipo</h2>
+      <p class="text-xs theme-text-secondary mt-0.5">
+        Ponle un nombre fácil de reconocer para toda la familia.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label for="name" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿Cómo quieres llamar a este aparato? <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          required
+          maxlength="100"
+          value="{{ form_data.get('name', '') }}"
+          placeholder="Ej. Tablet de Sofía, Tele de la Sala, Laptop de Papá"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="device_type" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿Qué tipo de aparato es?
+        </label>
+        <select id="device_type" name="device_type" class="form-select-dark">
+          {% for key, label in device_Model.TYPE_LABELS.items() %}
+            <option value="{{ key }}" {% if form_data.get('device_type') == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label for="owner_label" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿De quién es o en qué cuarto está?
+        </label>
+        <input
+          id="owner_label"
+          name="owner_label"
+          type="text"
+          maxlength="100"
+          value="{{ form_data.get('owner_label', '') }}"
+          placeholder="Ej. Sala familiar, Hijos, Estudio"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="ip_address" class="block text-sm font-semibold theme-text-primary mb-1">
+          Dirección IP del aparato <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="ip_address"
+          name="ip_address"
+          type="text"
+          required
+          value="{{ form_data.get('ip_address', '') }}"
+          placeholder="Ej. 192.168.1.50"
+          class="form-input-dark font-mono-code"
+        />
+        <p class="text-[11px] theme-text-muted mt-1">
+          Aparece en los ajustes Wi-Fi del aparato (empieza con <code class="font-mono-code">192.168.1.</code>).
+        </p>
+      </div>
+
+      <div>
+        <label for="admin_status" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿Qué permiso tiene en casa?
+        </label>
+        <select id="admin_status" name="admin_status" class="form-select-dark">
+          {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
+            <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label for="description" class="block text-sm font-semibold theme-text-primary mb-1">Notas adicionales (Opcional)</label>
+      <textarea
+        id="description"
+        name="description"
+        rows="2"
+        placeholder="Ej. Solo se usa para tareas de la escuela y películas los fines de semana..."
+        class="form-textarea-dark"
+      >{{ form_data.get('description', '') }}</textarea>
+    </div>
+
+    <!-- Sección técnica avanzada desplegable (lista por defecto para que la familia no tenga que tocarla) -->
+    <details class="surface-subtle p-4">
+      <summary class="cursor-pointer text-xs font-semibold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        Opciones técnicas avanzadas de red (Opcional — ya configuradas automáticamente)
+      </summary>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-3 border-t border-slate-800">
+        <div>
+          <label for="mac_address" class="block text-xs font-semibold theme-text-secondary mb-1">Dirección Física MAC (Opcional)</label>
+          <input
+            id="mac_address"
+            name="mac_address"
+            type="text"
+            value="{{ form_data.get('mac_address', '') }}"
+            placeholder="AA:BB:CC:DD:EE:FF"
+            class="form-input-dark font-mono-code"
+          />
+        </div>
+
+        <div>
+          <label for="hostname" class="block text-xs font-semibold theme-text-secondary mb-1">Nombre técnico (Hostname)</label>
+          <input
+            id="hostname"
+            name="hostname"
+            type="text"
+            maxlength="100"
+            value="{{ form_data.get('hostname', '') }}"
+            placeholder="Ej. laptop-casa.lan"
+            class="form-input-dark font-mono-code"
+          />
+        </div>
+
+        <div>
+          <label for="network_scope" class="block text-xs font-semibold theme-text-secondary mb-1">Subred del hogar (CIDR)</label>
+          <input
+            id="network_scope"
+            name="network_scope"
+            type="text"
+            required
+            value="{{ form_data.get('network_scope', '192.168.1.0/24') }}"
+            class="form-input-dark font-mono-code"
+          />
+        </div>
+
+        <div>
+          <label for="ip_assignment_type" class="block text-xs font-semibold theme-text-secondary mb-1">Tipo de asignación de IP</label>
+          <select id="ip_assignment_type" name="ip_assignment_type" class="form-select-dark">
+            {% for key, label in device_Model.IP_ASSIGNMENT_LABELS.items() %}
+              <option value="{{ key }}" {% if form_data.get('ip_assignment_type') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="inline-flex items-center gap-2 text-xs theme-text-secondary cursor-pointer">
+            <input type="checkbox" name="sync_with_adapter" value="1" checked class="rounded text-blue-600" />
+            <span>Aplicar automáticamente en el simulador de red al guardar</span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+      <a href="{{ url_for('devices.index') }}" class="btn-secondary">
+        Cancelar
+      </a>
+      <button
+        type="submit"
+        data-loading-text="Guardando..."
+        class="btn-primary px-6 py-2.5"
+      >
+        {% if device %}Guardar Cambios{% else %}Guardar Dispositivo{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

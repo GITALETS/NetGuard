@@ -1,0 +1,134 @@
+{# ============================================================================
+   Macros reutilizables con iconografía SVG uniforme (sin emojis)
+   ============================================================================ #}
+
+{% macro device_type_icon(dtype) %}
+  {% if dtype == 'laptop' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2 18h20"/></svg>
+  {% elif dtype == 'workstation' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+  {% elif dtype == 'smartphone' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2" ry="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01"/></svg>
+  {% elif dtype == 'tablet' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01"/></svg>
+  {% elif dtype == 'smart_tv' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8m-4-4v4"/></svg>
+  {% elif dtype == 'console' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12h4m-2-2v4m7-1h.01M18 11h.01M5 8h14a3 3 0 012.95 3.55l-.9 5A2.5 2.5 0 0118.59 19c-.74 0-1.43-.33-1.9-.9L15 16H9l-1.69 2.1c-.47.57-1.16.9-1.9.9a2.5 2.5 0 01-2.46-2.45l-.9-5A3 3 0 015 8z"/></svg>
+  {% elif dtype == 'iot' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
+  {% elif dtype == 'printer' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6v-7z"/></svg>
+  {% elif dtype == 'server' %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 17h.01"/></svg>
+  {% else %}
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+  {% endif %}
+{% endmacro %}
+
+{% macro device_status_badge(status, label) %}
+  {% if status == 'authorized' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Acceso Permitido
+    </span>
+  {% elif status == 'restricted' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-amber-950/80 text-amber-300 border border-amber-700/60">
+      <span class="w-2 h-2 rounded-full bg-amber-500"></span>Con Horario / Restricción
+    </span>
+  {% elif status == 'blocked' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-rose-950/80 text-rose-300 border border-rose-700/60">
+      <span class="w-2 h-2 rounded-full bg-rose-500"></span>Bloqueado / Pausado
+    </span>
+  {% else %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300 border border-slate-600/60">
+      <span class="w-2 h-2 rounded-full bg-slate-400"></span>Nuevo (Por Revisar)
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{% macro router_sync_badge(sync_status, label) %}
+  {% if sync_status in ('simulated_applied', 'simulated_in_lab') %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-cyan-950/70 text-cyan-300 border border-cyan-700/50" title="{{ label }}">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      <span>{{ label }}</span>
+    </span>
+  {% elif sync_status in ('applied_confirmed', 'applied_in_router') %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-emerald-950/70 text-emerald-300 border border-emerald-700/50">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      <span>{{ label }}</span>
+    </span>
+  {% elif sync_status == 'sync_error' %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-rose-950/70 text-rose-300 border border-rose-700/50">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+      <span>{{ label }}</span>
+    </span>
+  {% else %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-800/90 text-slate-300 border border-slate-700" title="{{ label }}">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4"/></svg>
+      <span>Guardado en Sistema</span>
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{% macro policy_status_badge(eff_status, label) %}
+  {% if eff_status == 'active' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Activa ({{ label }})
+    </span>
+  {% elif eff_status == 'scheduled' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-sky-950/80 text-sky-300 border border-sky-700/60">
+      <span class="w-2 h-2 rounded-full bg-sky-500"></span>{{ label }}
+    </span>
+  {% elif eff_status == 'expired' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-slate-800/90 text-slate-400 border border-slate-600/60">
+      Vencida ({{ label }})
+    </span>
+  {% elif eff_status == 'paused' %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-amber-950/80 text-amber-300 border border-amber-700/60">
+      En Pausa
+    </span>
+  {% else %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-rose-950/80 text-rose-300 border border-rose-700/60">
+      {{ label }}
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{% macro policy_action_badge(action, label) %}
+  {% if action == 'allow' %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      <span>Permitir Internet</span>
+    </span>
+  {% elif action == 'restrict' %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap bg-amber-950/60 text-amber-300 border border-amber-800/60">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4v5c0 5.25-3.5 9.75-8 11-4.5-1.25-8-5.75-8-11V7l8-4z"/></svg>
+      <span>Limitar / Filtrar</span>
+    </span>
+  {% else %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap bg-rose-950/60 text-rose-300 border border-rose-800/60">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+      <span>Pausar Internet</span>
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{% macro demo_badge(is_demo) %}
+  {% if is_demo %}
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap bg-indigo-950/90 text-indigo-300 border border-indigo-700/60" title="Dispositivo de ejemplo para demostración">
+      Ejemplo Demo
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{% macro audit_severity_badge(severity, label) %}
+  {% if severity == 'security' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium whitespace-nowrap bg-indigo-950/80 text-indigo-300 border border-indigo-700/60">{{ label }}</span>
+  {% elif severity == 'warning' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium whitespace-nowrap bg-amber-950/80 text-amber-300 border border-amber-700/60">{{ label }}</span>
+  {% elif severity == 'error' %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium whitespace-nowrap bg-rose-950/80 text-rose-300 border border-rose-700/60">{{ label }}</span>
+  {% else %}
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium whitespace-nowrap bg-slate-800 text-slate-300 border border-slate-700">{{ label }}</span>
+  {% endif %}
+{% endmacro %}

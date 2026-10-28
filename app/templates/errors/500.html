@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Error Interno del Servidor (500){% endblock %}
+{% block page_header %}Error Operativo Controlado{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-12">
+  <div class="surface-card p-6 text-center space-y-4 border border-rose-800/60">
+    <div class="text-2xl font-mono-code font-bold text-rose-400">HTTP 500 &bull; Error Operativo</div>
+    <p class="text-sm text-slate-200">
+      Ocurrió un error interno al procesar la solicitud. La transacción de base de datos fue revertida de forma segura sin exponer información interna del sistema.
+    </p>
+    <div class="pt-2">
+      <a href="{{ url_for('dashboard.index') }}" class="inline-flex px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white">
+        Volver al Panel Principal
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block public_content %}
+<div class="max-w-lg mx-auto px-4 py-12">
+  <div class="surface-card p-6 text-center space-y-4 border border-rose-800/60">
+    <div class="text-2xl font-mono-code font-bold text-rose-400">HTTP 500 &bull; Error Operativo</div>
+    <p class="text-sm text-slate-200">
+      Ocurrió un error interno controlado. Intente nuevamente más tarde.
+    </p>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import audit_severity_badge %}
+
+{% block title %}Actividad Reciente{% endblock %}
+{% block page_header %}Actividad y Cambios Recientes{% endblock %}
+{% block page_subtitle %}Consulta qué cambios se han hecho en los equipos, permisos y horarios de la casa{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('audit.export_csv') }}" class="btn-secondary">
+    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span>Descargar Historial (CSV)</span>
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-5">
+
+  <!-- Filtros sencillos -->
+  <form method="GET" action="{{ url_for('audit.index') }}" class="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+    <div>
+      <label for="q" class="block text-xs font-semibold theme-text-secondary mb-1">Buscar en la actividad</label>
+      <input
+        id="q"
+        name="q"
+        type="text"
+        value="{{ q }}"
+        placeholder="Ej. Tablet, Laptop, admin..."
+        class="form-input-dark"
+      />
+    </div>
+
+    <div>
+      <label for="module" class="block text-xs font-semibold theme-text-secondary mb-1">Sección</label>
+      <select id="module" name="module" class="form-select-dark">
+        <option value="">Todas las secciones</option>
+        {% for key, label in audit_Model.MODULE_LABELS.items() %}
+          <option value="{{ key }}" {% if module_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="severity" class="block text-xs font-semibold theme-text-secondary mb-1">Tipo de aviso</label>
+      <select id="severity" name="severity" class="form-select-dark">
+        <option value="">Todos</option>
+        {% for key, label in audit_Model.SEVERITY_LABELS.items() %}
+          <option value="{{ key }}" {% if severity_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button type="submit" class="btn-primary flex-1">
+        Buscar
+      </button>
+      <a href="{{ url_for('audit.index') }}" class="btn-secondary">
+        Ver todo
+      </a>
+    </div>
+  </form>
+
+  <!-- Tabla limpia de actividad -->
+  <div class="surface-card overflow-hidden">
+    {% if logs %}
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Sección</th>
+              <th>¿Quién lo hizo?</th>
+              <th>¿Qué se realizó?</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td class="whitespace-nowrap text-xs font-mono-code theme-text-secondary">
+                {{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') if log.created_at else '' }}
+              </td>
+
+              <td class="whitespace-nowrap">
+                <div class="text-xs font-semibold theme-text-primary mb-1">{{ log.module_label }}</div>
+                {{ audit_severity_badge(log.severity, log.severity_label) }}
+              </td>
+
+              <td class="whitespace-nowrap text-sm">
+                <div class="font-semibold theme-text-primary">{{ log.username_snapshot or 'Sistema' }}</div>
+              </td>
+
+              <td class="text-sm theme-text-primary leading-relaxed">
+                <div>{{ log.description }}</div>
+                {% if log.metadata_json %}
+                  <details class="mt-1 text-xs theme-text-muted">
+                    <summary class="cursor-pointer hover:underline">Ver detalle técnico ({{ log.event_type }})</summary>
+                    <code class="block mt-1 font-mono-code text-[11px] p-2 rounded bg-slate-900 break-all">{{ log.metadata_json }}</code>
+                  </details>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="p-10 text-center text-sm theme-text-muted">
+        No se encontraron actividades con los filtros seleccionados.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

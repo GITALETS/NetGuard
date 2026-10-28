@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import policy_status_badge, policy_action_badge, router_sync_badge, demo_badge %}
+
+{% block title %}{{ policy.name }}{% endblock %}
+{% block page_header %}
+  <span class="inline-flex items-center gap-2">
+    <svg class="w-5 h-5 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    {{ policy.name }}
+  </span>
+{% endblock %}
+{% block page_subtitle %}Detalle de la regla de acceso familiar y su duración{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('policies.index') }}" class="btn-secondary">
+    &larr; Volver a Permisos
+  </a>
+  {% if current_user.can_modify %}
+    <a href="{{ url_for('policies.edit', policy_id=policy.id) }}" class="btn-primary">
+      Editar Regla
+    </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  {% if policy.effective_status == 'expired' %}
+  <div class="p-4 rounded-2xl bg-rose-950/60 border border-rose-700/60 text-sm text-rose-200">
+    <strong>Esta regla ya venció:</strong>
+    Su fecha límite fue el <strong>{{ policy.valid_until.strftime('%d/%m/%Y a las %H:%M') if policy.valid_until else '' }}</strong>, por lo que ya no está activa.
+  </div>
+  {% endif %}
+
+  <div class="surface-card p-6 space-y-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        {{ policy_status_badge(policy.effective_status, policy.effective_status_label) }}
+        {{ policy_action_badge(policy.action, policy.action_label) }}
+        {{ demo_badge(policy.is_demo) }}
+      </div>
+      <div class="flex items-center gap-2">
+        {{ router_sync_badge(policy.enforcement_status, policy.enforcement_label) }}
+        {% if current_user.can_modify %}
+          <form method="POST" action="{{ url_for('policies.sync_router', policy_id=policy.id) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="btn-secondary text-xs">Actualizar estado</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="surface-subtle p-4">
+        <div class="text-xs theme-text-muted">Aparato de la Familia</div>
+        <a href="{{ url_for('devices.detail', device_id=policy.device.id) }}" class="font-bold text-sm theme-text-primary hover:underline block mt-1">
+          {{ policy.device.name }}
+        </a>
+        <div class="text-xs font-mono-code theme-text-secondary mt-0.5">IP: {{ policy.device.ip_address }}</div>
+      </div>
+
+      <div class="surface-subtle p-4">
+        <div class="text-xs theme-text-muted">Tipo de Regla</div>
+        <div class="font-bold text-sm theme-text-primary mt-1">{{ policy.policy_type_label }}</div>
+        <div class="text-xs theme-text-secondary mt-0.5">Prioridad #{{ policy.priority }}</div>
+      </div>
+
+      <div class="surface-subtle p-4">
+        <div class="text-xs theme-text-muted">Empieza el</div>
+        <div class="font-bold text-sm theme-text-primary mt-1">
+          {{ policy.valid_from.strftime('%d/%m/%Y %H:%M') if policy.valid_from else '' }}
+        </div>
+      </div>
+
+      <div class="surface-subtle p-4">
+        <div class="text-xs theme-text-muted">Termina el</div>
+        <div class="font-bold text-sm theme-text-primary mt-1">
+          {{ policy.valid_until.strftime('%d/%m/%Y %H:%M') if policy.valid_until else 'Sin vencimiento (Permanente)' }}
+        </div>
+      </div>
+    </div>
+
+    {% if policy.navigation_profile %}
+    <div class="surface-subtle p-4 text-sm">
+      <span class="font-bold theme-text-primary block mb-0.5">Filtros aplicados:</span>
+      <span class="theme-text-secondary">{{ policy.navigation_profile }}</span>
+    </div>
+    {% endif %}
+
+    {% if policy.description %}
+    <div class="surface-subtle p-4 text-sm">
+      <span class="font-bold theme-text-primary block mb-0.5">Descripción:</span>
+      <span class="theme-text-secondary">{{ policy.description }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Registro técnico en desplegable opcional -->
+  <details class="surface-card p-5">
+    <summary class="cursor-pointer text-sm font-bold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Ver detalles técnicos del adaptador de router (Opcional)
+    </summary>
+    <div class="mt-4 pt-3 border-t border-slate-800 space-y-3 text-xs">
+      {% if sync_logs %}
+        {% for slog in sync_logs[:3] %}
+          <div class="surface-subtle p-3 space-y-1.5">
+            <div class="font-mono-code theme-text-muted">{{ slog.adapter_name }} &bull; {{ slog.created_at.strftime('%d/%m/%Y %H:%M:%S') if slog.created_at else '' }}</div>
+            <pre class="p-2.5 rounded-lg bg-slate-900 font-mono-code text-cyan-300 overflow-x-auto whitespace-pre-wrap">{{ slog.command_preview }}</pre>
+            <div class="theme-text-secondary">{{ slog.response_detail }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="theme-text-muted">Esta regla está guardada en el sistema y aún no se ha enviado al simulador.</p>
+      {% endif %}
+    </div>
+  </details>
+
+</div>
+{% endblock %}

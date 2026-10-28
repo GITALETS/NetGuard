@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{% if target_user %}Editar Cuenta{% else %}Agregar Persona{% endif %}{% endblock %}
+{% block page_header %}{% if target_user %}Editar Cuenta de {{ target_user.full_name }}{% else %}Agregar Persona al Sistema{% endif %}{% endblock %}
+{% block page_subtitle %}Crea o modifica el acceso para otro miembro de la familia{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('users.index') }}" class="btn-secondary">
+    &larr; Volver a Cuentas
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <form
+    method="POST"
+    action="{% if target_user %}{{ url_for('users.edit', user_id=target_user.id) }}{% else %}{{ url_for('users.create') }}{% endif %}"
+    class="surface-card p-6 sm:p-8 space-y-5"
+    novalidate
+  >
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label for="full_name" class="block text-sm font-semibold theme-text-primary mb-1">Nombre de la persona <span class="text-rose-400">*</span></label>
+        <input
+          id="full_name"
+          name="full_name"
+          type="text"
+          required
+          value="{{ form_data.get('full_name', '') }}"
+          placeholder="Ej. Mamá, Papá, Hermano Mayor"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="username" class="block text-sm font-semibold theme-text-primary mb-1">Usuario para iniciar sesión <span class="text-rose-400">*</span></label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          {% if target_user %}disabled{% else %}required{% endif %}
+          value="{{ form_data.get('username', '') }}"
+          placeholder="Ej. mama_casa"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-semibold theme-text-primary mb-1">Correo electrónico <span class="text-rose-400">*</span></label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          value="{{ form_data.get('email', '') }}"
+          placeholder="correo@familia.com"
+          class="form-input-dark"
+        />
+      </div>
+
+      <div>
+        <label for="role" class="block text-sm font-semibold theme-text-primary mb-1">¿Qué puede hacer en el sistema?</label>
+        <select id="role" name="role" class="form-select-dark">
+          {% for key, label in user_Model.ROLE_LABELS.items() %}
+            <option value="{{ key }}" {% if form_data.get('role') == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex flex-col justify-end">
+        <label class="surface-subtle p-3 flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            name="is_active"
+            value="1"
+            {% if form_data.get('is_active', True) %}checked{% endif %}
+            class="rounded text-blue-600"
+          />
+          <span class="text-sm font-medium theme-text-primary">Permitirle entrar al sistema</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="border-t border-slate-800 pt-4">
+      <h3 class="text-sm font-bold theme-text-primary mb-3">
+        {% if target_user %}Cambiar Contraseña (Opcional){% else %}Crear Contraseña (Mínimo 8 caracteres){% endif %}
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {% if target_user %}
+          <div>
+            <label for="new_password" class="block text-xs font-semibold theme-text-secondary mb-1">Nueva contraseña</label>
+            <input id="new_password" name="new_password" type="password" autocomplete="new-password" placeholder="Déjalo vacío para no cambiarla" class="form-input-dark" />
+          </div>
+          <div>
+            <label for="new_password_confirm" class="block text-xs font-semibold theme-text-secondary mb-1">Repite la nueva contraseña</label>
+            <input id="new_password_confirm" name="new_password_confirm" type="password" autocomplete="new-password" placeholder="Repite la contraseña" class="form-input-dark" />
+          </div>
+        {% else %}
+          <div>
+            <label for="password" class="block text-xs font-semibold theme-text-secondary mb-1">Contraseña <span class="text-rose-400">*</span></label>
+            <input id="password" name="password" type="password" required autocomplete="new-password" class="form-input-dark" />
+          </div>
+          <div>
+            <label for="password_confirm" class="block text-xs font-semibold theme-text-secondary mb-1">Repite la contraseña <span class="text-rose-400">*</span></label>
+            <input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password" class="form-input-dark" />
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+      <a href="{{ url_for('users.index') }}" class="btn-secondary">
+        Cancelar
+      </a>
+      <button type="submit" data-loading-text="Guardando..." class="btn-primary px-6 py-2.5">
+        {% if target_user %}Guardar Cambios{% else %}Crear Cuenta{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

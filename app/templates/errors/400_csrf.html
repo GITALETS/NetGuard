@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Solicitud Rechazada (CSRF){% endblock %}
+{% block page_header %}Validación de Seguridad CSRF{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-12">
+  <div class="surface-card p-6 text-center space-y-4 border border-amber-700/60">
+    <div class="text-2xl font-mono-code font-bold text-amber-400">HTTP 400 &bull; Protección CSRF</div>
+    <p class="text-sm text-slate-200">
+      La operación fue bloqueada porque el token de seguridad contra falsificación de peticiones (CSRF) es inválido o ha expirado.
+    </p>
+    <div class="pt-2">
+      <a href="{{ url_for('dashboard.index') }}" class="inline-flex px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white">
+        Volver al Panel Principal
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block public_content %}
+<div class="max-w-lg mx-auto px-4 py-12">
+  <div class="surface-card p-6 text-center space-y-4 border border-amber-700/60">
+    <div class="text-2xl font-mono-code font-bold text-amber-400">HTTP 400 &bull; Protección CSRF</div>
+    <p class="text-sm text-slate-200">
+      El formulario enviado no incluye un token CSRF válido. Recargue la página e intente de nuevo.
+    </p>
+    <div class="pt-2">
+      <a href="{{ url_for('auth.login') }}" class="inline-flex px-4 py-2 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white">
+        Ir a Inicio de Sesión
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

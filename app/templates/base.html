@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Mi Red en Casa{% endblock %} | {{ PROJECT_SHORT_NAME }}</title>
+  <script>
+    (function() {
+      var saved = localStorage.getItem('netguard_ui_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', saved);
+      if (saved === 'dark') document.documentElement.classList.add('dark');
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+</head>
+<body class="min-h-screen flex flex-col">
+
+  {% if current_user.is_authenticated %}
+  <div class="flex-1 flex min-h-screen">
+    <!-- Backdrop móvil -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 z-30 hidden lg:hidden"></div>
+
+    <!-- Menú lateral compacto y amigable (250px fijos) -->
+    <aside id="app-sidebar" class="app-sidebar-panel fixed lg:static inset-y-0 left-0 z-40 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-in-out shrink-0">
+      <!-- Marca de la aplicación -->
+      <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
+        <a href="{{ url_for('dashboard.index') }}" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-base theme-text-primary truncate">Mi Red en Casa</div>
+            <div class="text-xs theme-text-muted truncate">Control Familiar Wi-Fi</div>
+          </div>
+        </a>
+        <button id="mobile-menu-close" type="button" class="lg:hidden theme-text-secondary p-1.5 rounded-lg hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Enlaces principales de navegación con iconografía SVG uniforme -->
+      <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        {% set ep = request.endpoint or '' %}
+
+        <a href="{{ url_for('dashboard.index') }}" class="nav-item-link {% if ep.startswith('dashboard.') %}active{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+          </svg>
+          <span>Inicio y Resumen</span>
+        </a>
+
+        <a href="{{ url_for('devices.index') }}" class="nav-item-link {% if ep.startswith('devices.') %}active{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+          <span>Mis Dispositivos</span>
+        </a>
+
+        <a href="{{ url_for('policies.index') }}" class="nav-item-link {% if ep.startswith('policies.') %}active{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <span class="flex-1">Permisos de Acceso</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-semibold">Fase 2</span>
+        </a>
+
+        <a href="{{ url_for('schedules.index') }}" class="nav-item-link {% if ep.startswith('schedules.') %}active{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span class="flex-1">Horarios de Uso</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-semibold">Fase 2</span>
+        </a>
+
+        <a href="{{ url_for('audit.index') }}" class="nav-item-link {% if ep.startswith('audit.') %}active{% endif %}">
+          <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+          </svg>
+          <span>Actividad Reciente</span>
+        </a>
+
+        <div class="pt-3 mt-3 border-t border-slate-800/80">
+          <div class="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider theme-text-muted">Opciones del Hogar</div>
+
+          {% if current_user.is_admin %}
+          <a href="{{ url_for('users.index') }}" class="nav-item-link {% if ep.startswith('users.') %}active{% endif %}">
+            <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>Cuentas de Usuario</span>
+          </a>
+          {% endif %}
+
+          <a href="{{ url_for('settings.index') }}" class="nav-item-link {% if ep.startswith('settings.') %}active{% endif %}">
+            <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>Ajustes y Sistema</span>
+          </a>
+        </div>
+      </nav>
+
+      <!-- Tarjeta de usuario actual y botón de salida -->
+      <div class="p-4 border-t border-slate-800/90 space-y-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-blue-600/15 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
+            {{ current_user.full_name[:1]|upper }}
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-semibold theme-text-primary truncate">{{ current_user.full_name }}</div>
+            <div class="text-[11px] theme-text-muted truncate">{{ current_user.role_label }}</div>
+          </div>
+        </div>
+        <form action="{{ url_for('auth.logout') }}" method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-medium bg-slate-800 hover:bg-rose-950/80 text-slate-300 hover:text-rose-200 border border-slate-700 transition-colors flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Área principal derecha -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Barra superior limpia con selector de tema visual SVG -->
+      <header class="app-header-bar px-5 lg:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <button id="mobile-menu-btn" type="button" class="lg:hidden p-2 rounded-lg bg-slate-800 theme-text-primary border border-slate-700">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <div class="min-w-0">
+            <h1 class="text-lg lg:text-xl font-bold theme-text-primary truncate">{% block page_header %}Mi Red en Casa{% endblock %}</h1>
+            <p class="text-xs lg:text-sm theme-text-secondary truncate">{% block page_subtitle %}Administración sencilla de equipos y horarios familiares{% endblock %}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <!-- Conmutador de Tema Claro / Oscuro con iconos SVG -->
+          <button id="theme-toggle-btn" type="button" class="btn-secondary" title="Cambiar entre Modo Claro y Modo Oscuro">
+            <svg id="theme-icon-moon" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+            <svg id="theme-icon-sun" class="w-4 h-4 shrink-0 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span id="theme-toggle-label">Modo Oscuro</span>
+          </button>
+
+          {% block header_actions %}{% endblock %}
+        </div>
+      </header>
+
+      <!-- Mensajes de confirmación o aviso -->
+      <div class="px-5 lg:px-8 pt-4 max-w-7xl w-full mx-auto space-y-2">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div role="alert" class="px-4 py-3 rounded-xl border text-sm font-medium flex items-center justify-between gap-3
+                {% if category == 'error' %}bg-rose-950/80 border-rose-700/70 text-rose-200
+                {% elif category == 'warning' %}bg-amber-950/80 border-amber-700/70 text-amber-200
+                {% elif category == 'success' %}bg-emerald-950/80 border-emerald-700/70 text-emerald-200
+                {% else %}bg-sky-950/80 border-sky-700/70 text-sky-200{% endif %}">
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- Contenido principal centrado con ancho cómodo de lectura -->
+      <main class="flex-1 px-5 lg:px-8 py-6 max-w-7xl w-full mx-auto">
+        {% block content %}{% endblock %}
+      </main>
+
+      <!-- Pie de página discreto con título académico oficial -->
+      <footer class="px-5 lg:px-8 py-4 border-t border-slate-800/80 text-xs theme-text-muted flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl w-full mx-auto">
+        <span><strong>Proyecto de Tesis (Avance 35%):</strong> {{ PROJECT_TITLE }}</span>
+        <span class="whitespace-nowrap">
+          Base de Datos: <strong>MySQL 8.0+</strong> &bull; {% if ADAPTER_IS_SIMULATED %}Modo Demostración Activo{% else %}Modo Registro Local{% endif %}
+        </span>
+      </footer>
+    </div>
+  </div>
+  {% else %}
+    <!-- Vista de Login -->
+    <main class="flex-1 flex flex-col justify-center">
+      {% block public_content %}{% endblock %}
+    </main>
+  {% endif %}
+
+  <!-- Ventana de confirmación antes de borrar -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="surface-card max-w-md w-full p-6 shadow-xl">
+      <div class="flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-full bg-rose-950 border border-rose-700/60 flex items-center justify-center text-rose-400 shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 id="confirm-modal-title" class="text-base font-bold theme-text-primary">Confirmar acción</h3>
+          <p id="confirm-modal-message" class="mt-1.5 text-sm theme-text-secondary leading-relaxed">
+            ¿Está seguro de que desea eliminar este elemento?
+          </p>
+        </div>
+      </div>
+      <div class="mt-6 flex items-center justify-end gap-3">
+        <button id="confirm-modal-cancel" type="button" class="btn-secondary">
+          Cancelar
+        </button>
+        <button id="confirm-modal-accept" type="button" class="px-4 py-2 rounded-lg text-sm font-semibold bg-rose-600 hover:bg-rose-500 text-white">
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
