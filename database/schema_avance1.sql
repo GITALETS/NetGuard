@@ -101,3 +101,4 @@ CREATE INDEX ix_audit_module ON audit_logs (module);
 -- Las tablas `policies`, `schedules` y `router_sync_logs` corresponden a la
 -- FASE 2 y FASE 3 del cronograma de tesis, contenidas en `schema_completo.sql`.
 -- =============================================================================
+

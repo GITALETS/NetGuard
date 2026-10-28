@@ -152,3 +152,4 @@ git remote add origin https://github.com/TU_USUARIO/tesis-red-domestica-administ
 git push -u origin main
 ```
 > **Nota de Seguridad**: Gracias al archivo `.gitignore` incluido, tu contraseña de MySQL y tus secretos locales de `.env` **nunca se subirán a GitHub**, protegiendo la seguridad de tu entorno.
+
