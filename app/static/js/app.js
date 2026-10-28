@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initPolicyFormHelper();
   initScheduleFormHelper();
   initSubmitLoadingIndicator();
+  initPasswordToggles();
 });
 
 /**
@@ -267,6 +268,34 @@ function initSubmitLoadingIndicator() {
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = `<span>${btn.dataset.loadingText}</span>`;
+      }
+    });
+  });
+}
+
+/**
+ * Permite mostrar u ocultar contraseñas con botón de ojo interactivo.
+ */
+function initPasswordToggles() {
+  document.querySelectorAll("[data-toggle-password]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-toggle-password");
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      const eyeOpen = btn.querySelector(".eye-open");
+      const eyeClosed = btn.querySelector(".eye-closed");
+
+      if (input.type === "password") {
+        input.type = "text";
+        btn.setAttribute("title", "Ocultar contraseña");
+        if (eyeOpen) eyeOpen.classList.add("hidden");
+        if (eyeClosed) eyeClosed.classList.remove("hidden");
+      } else {
+        input.type = "password";
+        btn.setAttribute("title", "Mostrar contraseña");
+        if (eyeOpen) eyeOpen.classList.remove("hidden");
+        if (eyeClosed) eyeClosed.classList.add("hidden");
       }
     });
   });
