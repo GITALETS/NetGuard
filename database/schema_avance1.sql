@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS devices (
     ip_assignment_type VARCHAR(32) NOT NULL DEFAULT 'dhcp_reservation',
     mac_address VARCHAR(17) NULL,
     device_type VARCHAR(32) NOT NULL DEFAULT 'other',
+    profile VARCHAR(32) NOT NULL DEFAULT 'family',
     owner_label VARCHAR(100) NULL,
     admin_status VARCHAR(32) NOT NULL DEFAULT 'authorized',
     description TEXT NULL,

@@ -55,6 +55,17 @@
       </div>
 
       <div>
+        <label for="profile" class="block text-sm font-semibold theme-text-primary mb-1">
+          ¿Quién usa este aparato? (Perfil)
+        </label>
+        <select id="profile" name="profile" class="form-select-dark">
+          {% for key, label in device_Model.PROFILE_LABELS.items() %}
+            <option value="{{ key }}" {% if form_data.get('profile') == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
         <label for="owner_label" class="block text-sm font-semibold theme-text-primary mb-1">
           ¿De quién es o en qué cuarto está?
         </label>

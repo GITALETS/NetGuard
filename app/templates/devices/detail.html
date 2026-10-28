@@ -45,9 +45,11 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="surface-subtle p-4">
-        <div class="text-xs theme-text-muted">¿De quién es o dónde está?</div>
-        <div class="font-bold text-sm theme-text-primary mt-1">{{ device.owner_label or 'Uso general en casa' }}</div>
-        <div class="text-xs theme-text-secondary mt-0.5">{{ device.type_label }}</div>
+        <div class="text-xs theme-text-muted">Perfil y Asignación</div>
+        <div class="font-bold text-sm theme-text-primary mt-1">
+          <span class="px-2 py-0.5 rounded-md text-xs bg-blue-950 text-blue-300 border border-blue-800/60 font-semibold">{{ device.profile_label }}</span>
+        </div>
+        <div class="text-xs theme-text-secondary mt-1.5">{{ device.owner_label or 'Uso general en casa' }} &bull; {{ device.type_label }}</div>
       </div>
 
       <div class="surface-subtle p-4">

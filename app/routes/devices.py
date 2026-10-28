@@ -22,6 +22,7 @@ def index():
     q = (request.args.get("q") or "").strip()
     status_filter = (request.args.get("status") or "").strip()
     type_filter = (request.args.get("device_type") or "").strip()
+    profile_filter = (request.args.get("profile") or "").strip()
     sync_filter = (request.args.get("sync_status") or "").strip()
 
     query = Device.query
@@ -42,6 +43,8 @@ def index():
         query = query.filter(Device.admin_status == status_filter)
     if type_filter in Device.VALID_TYPES:
         query = query.filter(Device.device_type == type_filter)
+    if profile_filter in Device.VALID_PROFILES:
+        query = query.filter(Device.profile == profile_filter)
     if sync_filter in Device.VALID_ROUTER_SYNC:
         query = query.filter(Device.router_sync_status == sync_filter)
 
@@ -54,6 +57,7 @@ def index():
         q=q,
         status_filter=status_filter,
         type_filter=type_filter,
+        profile_filter=profile_filter,
         sync_filter=sync_filter,
         device_Model=Device,
         adapter_info=adapter_info,
@@ -69,6 +73,7 @@ def create():
         "network_scope": default_scope,
         "ip_assignment_type": "dhcp_reservation",
         "device_type": "workstation",
+        "profile": "family",
         "admin_status": "authorized",
     }
 
@@ -150,6 +155,7 @@ def edit(device_id: int):
         "ip_assignment_type": device.ip_assignment_type,
         "mac_address": device.mac_address or "",
         "device_type": device.device_type,
+        "profile": getattr(device, "profile", "family") or "family",
         "owner_label": device.owner_label or "",
         "description": device.description or "",
         "admin_status": device.admin_status,

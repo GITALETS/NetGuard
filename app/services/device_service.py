@@ -52,6 +52,10 @@ def create_device(
     if device_type not in Device.VALID_TYPES:
         raise ValidationError(f"Tipo de dispositivo no válido: '{device_type}'.")
 
+    profile = (data.get("profile") or "family").strip()
+    if profile not in Device.VALID_PROFILES:
+        profile = "family"
+
     admin_status = (data.get("admin_status") or "pending").strip()
     if admin_status not in Device.VALID_ADMIN_STATUSES:
         raise ValidationError(f"Estado administrativo no válido: '{admin_status}'.")
@@ -99,6 +103,7 @@ def create_device(
         ip_assignment_type=ip_assignment_type,
         mac_address=mac_address,
         device_type=device_type,
+        profile=profile,
         owner_label=owner_label,
         description=description,
         admin_status=admin_status,
@@ -221,6 +226,12 @@ def update_device(
     device.ip_assignment_type = ip_assignment_type
     device.mac_address = mac_address
     device.device_type = device_type
+    profile = (data.get("profile") or getattr(device, "profile", "family") or "family").strip()
+    if profile not in Device.VALID_PROFILES:
+        profile = "family"
+    if getattr(device, "profile", None) != profile:
+        changes["profile"] = {"from": getattr(device, "profile", "family"), "to": profile}
+    device.profile = profile
     device.owner_label = (data.get("owner_label") or "").strip() or None
     device.description = (data.get("description") or "").strip() or None
     device.admin_status = admin_status

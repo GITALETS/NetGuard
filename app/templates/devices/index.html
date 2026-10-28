@@ -17,7 +17,7 @@
 <div class="space-y-5">
 
   <!-- Barra sencilla de búsqueda y filtros -->
-  <form method="GET" action="{{ url_for('devices.index') }}" class="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+  <form method="GET" action="{{ url_for('devices.index') }}" class="surface-card p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
     <div>
       <label for="q" class="block text-xs font-semibold theme-text-secondary mb-1">Buscar equipo o persona</label>
       <input
@@ -36,6 +36,16 @@
         <option value="">Todos los permisos</option>
         {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
           <option value="{{ key }}" {% if status_filter == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="profile" class="block text-xs font-semibold theme-text-secondary mb-1">Perfil</label>
+      <select id="profile" name="profile" class="form-select-dark">
+        <option value="">Todos los perfiles</option>
+        {% for key, label in device_Model.PROFILE_LABELS.items() %}
+          <option value="{{ key }}" {% if profile_filter == key %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
@@ -90,8 +100,12 @@
                       </a>
                       {{ demo_badge(dev.is_demo) }}
                     </div>
-                    <div class="text-xs theme-text-secondary">
-                      {{ dev.owner_label or 'Uso general en casa' }} &bull; <span class="font-mono-code text-[11px]">{{ dev.internal_code }}</span>
+                    <div class="text-xs theme-text-secondary flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">{{ dev.profile_label }}</span>
+                      <span>&bull;</span>
+                      <span>{{ dev.owner_label or 'Uso general en casa' }}</span>
+                      <span>&bull;</span>
+                      <span class="font-mono-code text-[11px]">{{ dev.internal_code }}</span>
                     </div>
                   </div>
                 </div>

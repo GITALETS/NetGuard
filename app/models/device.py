@@ -49,6 +49,15 @@ class Device(db.Model):
         "pending": "Pendiente de Revisión",
     }
 
+    VALID_PROFILES = ("family", "child", "guest", "iot", "other")
+    PROFILE_LABELS = {
+        "family": "Familiar (Adultos / General)",
+        "child": "Menor (Niños / Estudiantes con supervisión)",
+        "guest": "Visita (Invitados temporales)",
+        "iot": "Hogar Inteligente / IoT (Smart TV, Cámaras, Consolas)",
+        "other": "Otro Perfil",
+    }
+
     VALID_IP_ASSIGNMENTS = ("static_manual", "dhcp_reservation", "dhcp_dynamic_observed")
     IP_ASSIGNMENT_LABELS = {
         "static_manual": "IP Estática Configurada",
@@ -84,6 +93,7 @@ class Device(db.Model):
     )
     mac_address = db.Column(db.String(17), unique=True, nullable=True)
     device_type = db.Column(db.String(32), nullable=False, default="other", index=True)
+    profile = db.Column(db.String(32), nullable=False, default="family", index=True)
     owner_label = db.Column(db.String(100), nullable=True)
     description = db.Column(db.Text, nullable=True)
     admin_status = db.Column(db.String(24), nullable=False, default="pending", index=True)
@@ -120,6 +130,10 @@ class Device(db.Model):
     @property
     def type_label(self) -> str:
         return self.TYPE_LABELS.get(self.device_type, self.device_type)
+
+    @property
+    def profile_label(self) -> str:
+        return self.PROFILE_LABELS.get(self.profile, self.profile)
 
     @property
     def admin_status_label(self) -> str:
