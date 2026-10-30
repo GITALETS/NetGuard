@@ -124,7 +124,7 @@ def switch_adapter():
 def seed_demo():
     counts = seed_laboratory_demo_data(user_id=current_user.id, include_phase2=False)
     flash(
-        f"Datos de demostración de laboratorio cargados: {counts['devices']} dispositivos del hogar con sus perfiles de red (Avance 1).",
+        f"Datos de demostración de laboratorio cargados: {counts['devices']} dispositivos del hogar con sus perfiles de red.",
         "success",
     )
     return redirect(url_for("settings.index"))

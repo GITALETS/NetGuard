@@ -15,7 +15,7 @@
 
 ---
 
-## 📌 Descripción General
+## Descripción General
 
 **NetGuard Home IP** es una solución de software orientada a la ciberseguridad defensiva y gestión centralizada de redes domésticas. Permite al administrador del hogar registrar, categorizar y auditar los dispositivos conectados a su red Wi-Fi o Ethernet, gestionando de forma estructurada sus direcciones IP, identificadores físicos (MAC) y perfiles familiares de acceso.
 
@@ -23,7 +23,7 @@ El proyecto está diseñado bajo estándares formales de redes (**RFC 1918**), p
 
 ---
 
-## 🧭 Cronograma y Estado de Avance
+## Cronograma y Estado del Proyecto
 
 El desarrollo del sistema se gestiona de manera continua mediante metodología ágil:
 - **Tablero de Seguimiento**: [Cronograma de Desarrollo en GitHub Projects](https://github.com/users/GITALETS/projects/3)
@@ -43,7 +43,7 @@ El desarrollo del sistema se gestiona de manera continua mediante metodología �
 
 ---
 
-## ⚙️ Principios Técnicos y Decisiones de Ingeniería
+## Principios Técnicos y Decisiones de Ingeniería
 
 1. **Desacoplamiento de Identificadores de Red**:
    - **Identificador de Sistema (`internal_code`)**: Código alfanumérico único e inmutable (ej. `DEV-0001`).
@@ -65,7 +65,7 @@ El desarrollo del sistema se gestiona de manera continua mediante metodología �
 
 ---
 
-## 🛠️ Tecnologías Empleadas
+## Tecnologías Empleadas
 
 - **Backend**: Python 3.10+ / 3.14, Flask 3.x
 - **Capa ORM / Datos**: SQLAlchemy 2.x, Flask-SQLAlchemy 3.x
@@ -77,7 +77,7 @@ El desarrollo del sistema se gestiona de manera continua mediante metodología �
 
 ---
 
-## 📂 Estructura de la Arquitectura
+## Estructura de la Arquitectura
 
 ```text
 ├── app/
@@ -99,7 +99,7 @@ El desarrollo del sistema se gestiona de manera continua mediante metodología �
 
 ---
 
-## 🚀 Instalación y Puesta en Marcha
+## Instalación y Puesta en Marcha
 
 ### 1. Clonar el Repositorio
 ```bash
@@ -146,7 +146,7 @@ Acceda a la interfaz web desde: **`http://127.0.0.1:5000`**
 
 ---
 
-## 🧪 Pruebas Automatizadas
+## Pruebas Automatizadas
 
 El proyecto cuenta con una batería completa de pruebas que verifican validaciones de IP, unicidad, flujos de autenticación, control de accesos y persistencia relacional:
 

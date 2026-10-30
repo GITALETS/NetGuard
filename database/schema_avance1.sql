@@ -1,6 +1,6 @@
 -- =============================================================================
 -- ESQUEMA RELACIONAL DE BASE DE DATOS - MYSQL 8.0+ / MYSQL WORKBENCH
--- ENTREGABLE: PRIMER AVANCE DE TESIS (35% DEL SISTEMA)
+-- ENTREGABLE: BASE DE DATOS RELACIONAL v1.0
 -- Proyecto de Tesis:
 -- "Sistema web para administración de dispositivos y políticas de acceso
 --  en redes domésticas mediante gestión de direcciones IP"
@@ -98,8 +98,8 @@ CREATE INDEX ix_audit_created_at ON audit_logs (created_at DESC);
 CREATE INDEX ix_audit_module ON audit_logs (module);
 
 -- =============================================================================
--- NOTA METODOLÓGICA DE AVANCE 1 (35%):
--- Las tablas `policies`, `schedules` y `router_sync_logs` corresponden a la
--- FASE 2 y FASE 3 del cronograma de tesis, contenidas en `schema_completo.sql`.
+-- NOTA METODOLÓGICA:
+-- Las tablas `access_policies`, `access_schedules` y `router_sync_logs` corresponden a la
+-- FASE 2 y FASE 3 del cronograma de desarrollo, estructuradas en `schema.sql`.
 -- =============================================================================
 

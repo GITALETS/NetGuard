@@ -21,9 +21,9 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None, include_phase2: boo
     """
     Carga un conjunto coherente de dispositivos simulados claramente identificados
     como datos de laboratorio (`is_demo=True`).
-    Para el Avance 1 (35%), por defecto carga exclusivamente los 6 dispositivos del hogar
-    con sus perfiles (Familiar, Menor, Visita, IoT). Las políticas y horarios de Fase 2
-    se reservan para la siguiente entrega parcial.
+    Por defecto carga exclusivamente los 6 dispositivos del hogar con sus perfiles
+    (Familiar, Menor, Visita, IoT). Las políticas y horarios de Fase 2
+    se reservan para la siguiente etapa.
     """
     now = utc_now_naive()
     created_counts = {"devices": 0, "policies": 0, "schedules": 0}
@@ -141,13 +141,13 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None, include_phase2: boo
         devices_by_code[spec["internal_code"]] = dev
         created_counts["devices"] += 1
 
-    # En el Avance 1 (35%), dejamos las Políticas y Horarios limpias para la Fase 2
+    # Dejamos las Políticas y Horarios limpias para la Fase 2
     if not include_phase2:
         log_audit_event(
             event_type="DEMO_DATA_SEEDED",
             module="system",
             description=(
-                f"Carga de dispositivos de prueba completada (Avance 1): "
+                f"Carga de dispositivos de prueba completada: "
                 f"{created_counts['devices']} dispositivos del hogar registrados con sus perfiles de red."
             ),
             severity="info",
