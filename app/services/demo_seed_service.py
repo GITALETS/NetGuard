@@ -17,11 +17,13 @@ from app.services.router_adapter import execute_device_router_sync, execute_poli
 from app.services.schedule_service import create_schedule
 
 
-def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
+def seed_laboratory_demo_data(user_id: Optional[int] = None, include_phase2: bool = False) -> Dict[str, int]:
     """
-    Carga un conjunto coherente de dispositivos, políticas y horarios simulados
-    claramente identificados como datos de laboratorio (`is_demo=True`).
-    Es idempotente: no duplica dispositivos si ya fueron cargados.
+    Carga un conjunto coherente de dispositivos simulados claramente identificados
+    como datos de laboratorio (`is_demo=True`).
+    Para el Avance 1 (35%), por defecto carga exclusivamente los 6 dispositivos del hogar
+    con sus perfiles (Familiar, Menor, Visita, IoT). Las políticas y horarios de Fase 2
+    se reservan para la siguiente entrega parcial.
     """
     now = utc_now_naive()
     created_counts = {"devices": 0, "policies": 0, "schedules": 0}
@@ -36,6 +38,7 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             "ip_assignment_type": "dhcp_reservation",
             "mac_address": "AA:BB:CC:11:22:01",
             "device_type": "workstation",
+            "profile": "family",
             "owner_label": "Administrador del Hogar (Datos Demo)",
             "description": "Equipo de escritorio con reserva DHCP vinculada por MAC en entorno de laboratorio.",
             "admin_status": "authorized",
@@ -50,6 +53,7 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             "ip_assignment_type": "dhcp_reservation",
             "mac_address": "AA:BB:CC:11:22:02",
             "device_type": "laptop",
+            "profile": "family",
             "owner_label": "Estudiante (Datos Demo)",
             "description": "Portátil autorizada con horario académico prioritario.",
             "admin_status": "authorized",
@@ -64,8 +68,9 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             "ip_assignment_type": "dhcp_reservation",
             "mac_address": "AA:BB:CC:11:22:03",
             "device_type": "tablet",
+            "profile": "child",
             "owner_label": "Familiar Menor (Datos Demo)",
-            "description": "Dispositivo con control parental de horarios y restricción nocturna.",
+            "description": "Dispositivo infantil para control parental con supervisión.",
             "admin_status": "restricted",
             "sync_in_lab": True,
         },
@@ -78,8 +83,9 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             "ip_assignment_type": "static_manual",
             "mac_address": "AA:BB:CC:11:22:04",
             "device_type": "smart_tv",
+            "profile": "iot",
             "owner_label": "Área Común (Datos Demo)",
-            "description": "Televisor con IP fija manual y ventana permitida vespertina/nocturna.",
+            "description": "Televisor con IP fija manual en subred doméstica.",
             "admin_status": "restricted",
             "sync_in_lab": False,
         },
@@ -92,8 +98,9 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             "ip_assignment_type": "dhcp_dynamic_observed",
             "mac_address": "AA:BB:CC:11:22:05",
             "device_type": "iot",
+            "profile": "iot",
             "owner_label": "Seguridad Domótica (Datos Demo)",
-            "description": "Dispositivo IoT con concesión DHCP dinámica y bloqueo hacia Internet exterior.",
+            "description": "Dispositivo IoT con concesión DHCP dinámica y aislamiento hacia el exterior.",
             "admin_status": "blocked",
             "sync_in_lab": True,
         },
@@ -106,6 +113,7 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             "ip_assignment_type": "dhcp_dynamic_observed",
             "mac_address": None,
             "device_type": "smartphone",
+            "profile": "guest",
             "owner_label": "Visita Temporal (Datos Demo)",
             "description": "Dispositivo observado por IP dinámica sin dirección MAC fija confirmada.",
             "admin_status": "pending",
@@ -132,6 +140,22 @@ def seed_laboratory_demo_data(user_id: Optional[int] = None) -> Dict[str, int]:
             execute_device_router_sync(dev, triggered_by_id=user_id, commit=True)
         devices_by_code[spec["internal_code"]] = dev
         created_counts["devices"] += 1
+
+    # En el Avance 1 (35%), dejamos las Políticas y Horarios limpias para la Fase 2
+    if not include_phase2:
+        log_audit_event(
+            event_type="DEMO_DATA_SEEDED",
+            module="system",
+            description=(
+                f"Carga de dispositivos de prueba completada (Avance 1): "
+                f"{created_counts['devices']} dispositivos del hogar registrados con sus perfiles de red."
+            ),
+            severity="info",
+            user_id=user_id,
+            metadata=created_counts,
+            commit=True,
+        )
+        return created_counts
 
     # Crear políticas representativas de las 5 categorías requeridas
     dev_pc = devices_by_code.get("DEV-0101")

@@ -122,10 +122,9 @@ def switch_adapter():
 @login_required
 @write_permission_required
 def seed_demo():
-    counts = seed_laboratory_demo_data(user_id=current_user.id)
+    counts = seed_laboratory_demo_data(user_id=current_user.id, include_phase2=False)
     flash(
-        f"Datos de demostración de laboratorio cargados: {counts['devices']} dispositivos, "
-        f"{counts['policies']} políticas y {counts['schedules']} horarios.",
+        f"Datos de demostración de laboratorio cargados: {counts['devices']} dispositivos del hogar con sus perfiles de red (Avance 1).",
         "success",
     )
     return redirect(url_for("settings.index"))
@@ -137,8 +136,7 @@ def seed_demo():
 def clear_demo():
     counts = clear_laboratory_demo_data(user_id=current_user.id)
     flash(
-        f"Datos de demostración eliminados: {counts['devices']} dispositivos, "
-        f"{counts['policies']} políticas y {counts['schedules']} horarios.",
+        f"Datos de demostración eliminados: {counts['devices']} dispositivos de prueba.",
         "info",
     )
     return redirect(url_for("settings.index"))
