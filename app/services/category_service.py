@@ -197,3 +197,4 @@ def seed_default_system_categories() -> int:
         db.session.commit()
 
     return created
+

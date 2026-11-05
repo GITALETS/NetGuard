@@ -265,3 +265,4 @@ def test_grouped_editor_in_device_detail(app, auth_client):
         assert updated_dev.name == "Computadora de Estudio Actualizada"
         assert updated_dev.ip_address == "192.168.1.96"
         assert updated_dev.device_type == "laptop"
+

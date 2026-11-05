@@ -57,3 +57,4 @@ class SystemCategory(db.Model):
 
     def __repr__(self) -> str:
         return f"<SystemCategory {self.category_type}:{self.code} '{self.name}'>"
+

@@ -64,3 +64,4 @@ def quick_add():
             return jsonify({"success": False, "error": str(exc)}), 400
         flash(str(exc), "error")
         return redirect(request.referrer or url_for("devices.index"))
+
