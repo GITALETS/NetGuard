@@ -133,14 +133,20 @@ def validate_policy_temporal_rules(
     valid_from: Optional[datetime],
     valid_until: Optional[datetime],
     navigation_profile: Optional[str] = None,
+    target_scope: Optional[str] = None,
+    target_domain: Optional[str] = None,
+    is_intermittent: bool = False,
+    interval_active: int = 30,
+    interval_pause: int = 15,
 ) -> None:
     """
-    Valida la coherencia temporal y semántica de una política de acceso:
+    Valida la coherencia temporal, semántica y de intermediación de una política de acceso:
     - `valid_from` es obligatorio.
     - Si existe `valid_until`, debe ser estrictamente posterior a `valid_from`.
     - Las políticas de `temporary_access` requieren obligatoriamente `valid_until`.
     - Las políticas de `permanent_access` no deben incluir fecha de finalización.
-    - Las políticas de `navigation_restriction` no pueden tener acción `allow` sin filtro.
+    - Las políticas de `navigation_restriction` o `intermittent_intermediary` requieren criterios de destino.
+    - Las políticas con intermitencia validan límites razonables de tiempo de actividad y pausa.
     """
     valid_types = (
         "administrative_auth",
@@ -148,6 +154,7 @@ def validate_policy_temporal_rules(
         "allowed_schedule",
         "navigation_restriction",
         "permanent_access",
+        "intermittent_intermediary",
     )
     if policy_type not in valid_types:
         raise ValidationError(f"Tipo de política inválido: '{policy_type}'.")
@@ -179,11 +186,19 @@ def validate_policy_temporal_rules(
                 "Contradicción detectada: una política de 'Restricciones de Navegación' debe tener "
                 "acción 'Restringir / Filtrar' o 'Bloquear Tráfico', no 'Permitir Acceso'."
             )
-        if not (navigation_profile or "").strip():
+        if not (navigation_profile or "").strip() and not (target_domain or "").strip():
             raise ValidationError(
-                "Para 'Restricciones de Navegación Configurables', especifique los criterios o perfil "
-                "de restricción (ej. bloqueo DNS de categorías o puertos restringidos)."
+                "Para 'Restricciones de Navegación Configurables', especifique los criterios de restricción "
+                "o el dominio/página objetivo."
             )
+
+    if policy_type == "intermittent_intermediary" or is_intermittent:
+        if interval_active < 1 or interval_active > 720:
+            raise ValidationError("El intervalo de actividad intermitente debe estar entre 1 y 720 minutos.")
+        if interval_pause < 1 or interval_pause > 720:
+            raise ValidationError("El intervalo de pausa intermitente debe estar entre 1 y 720 minutos.")
+        if target_scope == "specific_domain" and not (target_domain or "").strip():
+            raise ValidationError("Para una política sobre dominio específico, ingrese la página web o dominio de destino.")
 
 
 def validate_schedule_params(

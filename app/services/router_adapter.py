@@ -145,25 +145,37 @@ class LabSimulatorRouterAdapter(RouterAdapterBase):
                 "por lo que el simulador registra su desactivación preventiva."
             )
         else:
-            nav_extra = (
-                f" profile=\"{policy.navigation_profile}\""
-                if policy.navigation_profile
-                else ""
-            )
-            until_str = (
-                policy.valid_until.strftime("%Y-%m-%d %H:%M")
-                if policy.valid_until
-                else "PERMANENT"
-            )
-            preview = (
-                f"[SIMULADOR-LAB] policy-rule id={policy.id} prio={policy.priority} "
-                f"type={policy.policy_type} src={device.ip_address} "
-                f"action={policy.action.upper()} valid_until={until_str}{nav_extra}"
-            )
-            detail = (
-                f"Regla simulada para política '{policy.name}' sobre {device.ip_address} "
-                f"con acción '{policy.action_label}'. (Modo Laboratorio: sin efecto en tráfico real)."
-            )
+            if getattr(policy, "is_intermittent", False) or policy.policy_type == "intermittent_intermediary":
+                target = policy.target_domain or policy.navigation_profile or "all_destinations"
+                preview = (
+                    f"[SIMULADOR-INTERMEDIARIO] target={target} src={device.ip_address} "
+                    f"cycle={policy.interval_active_minutes}m_ON/{policy.interval_pause_minutes}m_OFF "
+                    f"status=ACTIVE_WINDOW -> action={policy.action.upper()}"
+                )
+                detail = (
+                    f"Intermediario simulado para política con intermitencia '{policy.name}' sobre {device.ip_address}: "
+                    f"Ciclo de {policy.interval_active_minutes} min activo / {policy.interval_pause_minutes} min pausa hacia '{target}'."
+                )
+            else:
+                nav_extra = (
+                    f" profile=\"{policy.navigation_profile}\""
+                    if policy.navigation_profile
+                    else ""
+                )
+                until_str = (
+                    policy.valid_until.strftime("%Y-%m-%d %H:%M")
+                    if policy.valid_until
+                    else "PERMANENT"
+                )
+                preview = (
+                    f"[SIMULADOR-LAB] policy-rule id={policy.id} prio={policy.priority} "
+                    f"type={policy.policy_type} src={device.ip_address} "
+                    f"action={policy.action.upper()} valid_until={until_str}{nav_extra}"
+                )
+                detail = (
+                    f"Regla simulada para política '{policy.name}' sobre {device.ip_address} "
+                    f"con acción '{policy.action_label}'. (Modo Laboratorio: sin efecto en tráfico real)."
+                )
         return AdapterSyncResult(
             adapter_name=self.__class__.__name__,
             operation="SYNC_ACCESS_POLICY",

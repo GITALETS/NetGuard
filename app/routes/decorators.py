@@ -26,14 +26,29 @@ def write_permission_required(view_func):
 
 
 def admin_required(view_func):
-    """Exige que el usuario autenticado tenga rol de Administrador General."""
+    """Exige que el usuario autenticado tenga privilegios administrativos (admin o superadmin)."""
 
     @wraps(view_func)
     def wrapped(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login", next=request.path))
         if not current_user.is_admin:
-            flash("Esta sección requiere privilegios de Administrador General.", "error")
+            flash("Esta sección requiere privilegios de Administrador de Red.", "error")
+            abort(403)
+        return view_func(*args, **kwargs)
+
+    return wrapped
+
+
+def superadmin_required(view_func):
+    """Exige que el usuario autenticado posea estrictamente el rol de Superadministrador."""
+
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login", next=request.path))
+        if not current_user.is_superadmin:
+            flash("Esta acción está reservada exclusivamente para el Superadministrador del sistema.", "error")
             abort(403)
         return view_func(*args, **kwargs)
 

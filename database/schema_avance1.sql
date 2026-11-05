@@ -29,10 +29,32 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT uq_users_username UNIQUE (username),
     CONSTRAINT uq_users_email UNIQUE (email),
-    CONSTRAINT chk_users_role CHECK (role IN ('admin', 'operator', 'auditor'))
+    CONSTRAINT chk_users_role CHECK (role IN ('superadmin', 'admin', 'operator', 'auditor'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX ix_users_role_active ON users (role, is_active);
+
+-- -----------------------------------------------------------------------------
+-- TABLA 1.1: system_categories (Categorías Dinámicas del Sistema)
+-- Permite que Administradores y Superadministradores creen nuevas opciones
+-- de tipos de dispositivos, perfiles familiares o destinos de red.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS system_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_type VARCHAR(32) NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NULL,
+    is_system_default TINYINT(1) NOT NULL DEFAULT 0,
+    created_by_id INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_cat_type_code UNIQUE (category_type, code),
+    CONSTRAINT fk_categories_user FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT chk_category_type CHECK (category_type IN ('device_type', 'device_profile', 'policy_target'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX ix_cat_type ON system_categories (category_type);
 
 -- -----------------------------------------------------------------------------
 -- TABLA 2: devices (Administración Centralizada de Dispositivos e IPs)

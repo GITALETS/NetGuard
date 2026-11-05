@@ -21,6 +21,7 @@ class AccessPolicy(db.Model):
         "allowed_schedule",
         "navigation_restriction",
         "permanent_access",
+        "intermittent_intermediary",
     )
     POLICY_TYPE_LABELS = {
         "administrative_auth": "1. Autorización Administrativa",
@@ -28,6 +29,14 @@ class AccessPolicy(db.Model):
         "allowed_schedule": "3. Horarios Permitidos",
         "navigation_restriction": "4. Restricciones de Navegación Configurables",
         "permanent_access": "5. Política de Acceso Permanente",
+        "intermittent_intermediary": "6. Control Intermediario con Intermitencia (Páginas / Servicios)",
+    }
+
+    VALID_TARGET_SCOPES = ("all_traffic", "specific_domain", "web_category")
+    TARGET_SCOPE_LABELS = {
+        "all_traffic": "Tráfico General de Red (Todo Internet)",
+        "specific_domain": "Página o Dominio Específico (ej. youtube.com)",
+        "web_category": "Categoría de Contenido (Redes Sociales, Videojuegos)",
     }
 
     VALID_ACTIONS = ("allow", "restrict", "block")
@@ -77,6 +86,13 @@ class AccessPolicy(db.Model):
     valid_from = db.Column(db.DateTime, nullable=False, default=utc_now_naive)
     valid_until = db.Column(db.DateTime, nullable=True)
     navigation_profile = db.Column(db.String(160), nullable=True)
+    target_scope = db.Column(db.String(32), nullable=False, default="all_traffic")
+    target_domain = db.Column(db.String(255), nullable=True)
+    is_intermittent = db.Column(db.Boolean, nullable=False, default=False)
+    interval_active_minutes = db.Column(db.Integer, nullable=False, default=30)
+    interval_pause_minutes = db.Column(db.Integer, nullable=False, default=15)
+    current_cycle_state = db.Column(db.String(32), nullable=False, default="active_window")
+    next_cycle_switch_at = db.Column(db.DateTime, nullable=True)
     observations = db.Column(db.Text, nullable=True)
     enforcement_status = db.Column(
         db.String(32),
@@ -145,6 +161,19 @@ class AccessPolicy(db.Model):
     @property
     def policy_type_label(self) -> str:
         return self.POLICY_TYPE_LABELS.get(self.policy_type, self.policy_type)
+
+    @property
+    def target_scope_label(self) -> str:
+        """Devuelve la etiqueta legible del ámbito o destino de la política."""
+        return self.TARGET_SCOPE_LABELS.get(self.target_scope, self.target_scope)
+
+    @property
+    def intermittent_summary(self) -> Optional[str]:
+        """Devuelve un resumen técnico amigable de los intervalos de intermitencia."""
+        if not self.is_intermittent:
+            return None
+        target = self.target_domain or self.navigation_profile or "Internet General"
+        return f"{self.interval_active_minutes} min activo / {self.interval_pause_minutes} min pausa ({target})"
 
     @property
     def action_label(self) -> str:

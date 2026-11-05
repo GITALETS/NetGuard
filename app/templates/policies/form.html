@@ -91,6 +91,90 @@
       />
     </div>
 
+    <!-- Intermediario de Destino e Intermitencia de Accesos -->
+    <div class="surface-subtle p-4 space-y-4">
+      <div class="border-b border-slate-800 pb-2">
+        <h3 class="text-sm font-bold theme-text-primary">Destino del Tráfico e Intermediario</h3>
+        <p class="text-xs theme-text-secondary">Indica si la política aplica a todo Internet o a una página/servicio específico (ej. YouTube, TikTok, Roblox)</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="target_scope" class="block text-xs font-semibold theme-text-secondary mb-1">
+            Ámbito o Destino
+          </label>
+          <select id="target_scope" name="target_scope" class="form-select-dark">
+            <option value="all_traffic" {% if form_data.get('target_scope') == 'all_traffic' %}selected{% endif %}>Todo el Tráfico de Internet</option>
+            <option value="specific_domain" {% if form_data.get('target_scope') == 'specific_domain' %}selected{% endif %}>Página Web o Dominio Específico</option>
+            <option value="web_category" {% if form_data.get('target_scope') == 'web_category' %}selected{% endif %}>Categoría de Contenido</option>
+          </select>
+        </div>
+
+        <div id="target_domain_group" class="{% if form_data.get('target_scope') != 'specific_domain' %}hidden{% endif %}">
+          <label for="target_domain" class="block text-xs font-semibold theme-text-secondary mb-1">
+            Dominio o Página Web <span class="text-rose-400">*</span>
+          </label>
+          <input
+            id="target_domain"
+            name="target_domain"
+            type="text"
+            value="{{ form_data.get('target_domain', '') }}"
+            placeholder="Ej. youtube.com, tiktok.com, roblox.com"
+            class="form-input-dark font-mono-code"
+          />
+        </div>
+      </div>
+
+      <div class="border-t border-slate-800/80 pt-3">
+        <label class="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            id="is_intermittent"
+            name="is_intermittent"
+            value="1"
+            {% if form_data.get('is_intermittent') or form_data.get('policy_type') == 'intermittent_intermediary' %}checked{% endif %}
+            class="rounded text-blue-600"
+          />
+          <span class="text-sm font-semibold theme-text-primary">Activar Intermitencia de Accesos (Control por Intervalos / Modo Descanso)</span>
+        </label>
+        <p class="text-xs theme-text-muted mt-1 ml-6">
+          Modula la conexión en ciclos continuos (ej. 30 minutos de acceso seguido de 15 minutos de descanso de pantalla o estudio).
+        </p>
+
+        <div id="intermittent_settings" class="{% if not form_data.get('is_intermittent') and form_data.get('policy_type') != 'intermittent_intermediary' %}hidden{% endif %} grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 ml-6 pt-2 border-t border-slate-800">
+          <div>
+            <label for="interval_active_minutes" class="block text-xs font-semibold theme-text-secondary mb-1">
+              Minutos de conexión permitida
+            </label>
+            <input
+              id="interval_active_minutes"
+              name="interval_active_minutes"
+              type="number"
+              min="1"
+              max="720"
+              value="{{ form_data.get('interval_active_minutes', 30) }}"
+              class="form-input-dark font-mono-code"
+            />
+          </div>
+
+          <div>
+            <label for="interval_pause_minutes" class="block text-xs font-semibold theme-text-secondary mb-1">
+              Minutos de pausa o descanso
+            </label>
+            <input
+              id="interval_pause_minutes"
+              name="interval_pause_minutes"
+              type="number"
+              min="1"
+              max="720"
+              value="{{ form_data.get('interval_pause_minutes', 15) }}"
+              class="form-input-dark font-mono-code"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="border-b border-slate-800 pb-3 pt-2">
       <h2 class="text-base font-bold theme-text-primary">2. ¿Durante cuánto tiempo estará activa?</h2>
     </div>

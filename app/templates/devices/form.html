@@ -44,24 +44,50 @@
       </div>
 
       <div>
-        <label for="device_type" class="block text-sm font-semibold theme-text-primary mb-1">
-          ¿Qué tipo de aparato es?
-        </label>
+        <div class="flex items-center justify-between mb-1">
+          <label for="device_type" class="block text-sm font-semibold theme-text-primary">
+            ¿Qué tipo de aparato es?
+          </label>
+          {% if current_user.can_manage_categories %}
+            <button type="button" data-open-category-modal="device_type" class="text-xs text-blue-400 hover:underline font-medium">
+              + Nueva Categoría
+            </button>
+          {% endif %}
+        </div>
         <select id="device_type" name="device_type" class="form-select-dark">
-          {% for key, label in device_Model.TYPE_LABELS.items() %}
-            <option value="{{ key }}" {% if form_data.get('device_type') == key %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
+          {% if device_types %}
+            {% for key, label in device_types.items() %}
+              <option value="{{ key }}" {% if form_data.get('device_type') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          {% else %}
+            {% for key, label in device_Model.TYPE_LABELS.items() %}
+              <option value="{{ key }}" {% if form_data.get('device_type') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          {% endif %}
         </select>
       </div>
 
       <div>
-        <label for="profile" class="block text-sm font-semibold theme-text-primary mb-1">
-          ¿Quién usa este aparato? (Perfil)
-        </label>
+        <div class="flex items-center justify-between mb-1">
+          <label for="profile" class="block text-sm font-semibold theme-text-primary">
+            ¿Quién usa este aparato? (Perfil)
+          </label>
+          {% if current_user.can_manage_categories %}
+            <button type="button" data-open-category-modal="device_profile" class="text-xs text-blue-400 hover:underline font-medium">
+              + Nuevo Perfil
+            </button>
+          {% endif %}
+        </div>
         <select id="profile" name="profile" class="form-select-dark">
-          {% for key, label in device_Model.PROFILE_LABELS.items() %}
-            <option value="{{ key }}" {% if form_data.get('profile') == key %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
+          {% if device_profiles %}
+            {% for key, label in device_profiles.items() %}
+              <option value="{{ key }}" {% if form_data.get('profile') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          {% else %}
+            {% for key, label in device_Model.PROFILE_LABELS.items() %}
+              <option value="{{ key }}" {% if form_data.get('profile') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          {% endif %}
         </select>
       </div>
 
@@ -89,13 +115,14 @@
           name="ip_address"
           type="text"
           required
+          data-validate-ip="true"
           value="{{ form_data.get('ip_address', '') }}"
           placeholder="Ej. 192.168.1.50"
           class="form-input-dark font-mono-code"
         />
-        <p class="text-[11px] theme-text-muted mt-1">
-          Aparece en los ajustes Wi-Fi del aparato (empieza con <code class="font-mono-code">192.168.1.</code>).
-        </p>
+        <div id="ip_feedback_box" class="text-[11px] mt-1 theme-text-muted">
+          Subred privada esperada: <code class="font-mono-code">192.168.1.0/24</code>
+        </div>
       </div>
 
       <div>
@@ -134,6 +161,8 @@
             id="mac_address"
             name="mac_address"
             type="text"
+            maxlength="17"
+            data-validate-mac="true"
             value="{{ form_data.get('mac_address', '') }}"
             placeholder="AA:BB:CC:DD:EE:FF"
             class="form-input-dark font-mono-code"
@@ -197,4 +226,6 @@
     </div>
   </form>
 </div>
+
+{% include "components/category_modal.html" %}
 {% endblock %}

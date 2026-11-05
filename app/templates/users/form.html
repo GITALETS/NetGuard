@@ -63,7 +63,9 @@
         <label for="role" class="block text-sm font-semibold theme-text-primary mb-1">¿Qué puede hacer en el sistema?</label>
         <select id="role" name="role" class="form-select-dark">
           {% for key, label in user_Model.ROLE_LABELS.items() %}
-            <option value="{{ key }}" {% if form_data.get('role') == key %}selected{% endif %}>{{ label }}</option>
+            {% if key != 'superadmin' or current_user.is_superadmin %}
+              <option value="{{ key }}" {% if form_data.get('role') == key %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
           {% endfor %}
         </select>
       </div>

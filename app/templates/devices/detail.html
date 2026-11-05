@@ -1,212 +1,562 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import device_type_icon, device_status_badge, router_sync_badge, policy_status_badge, policy_action_badge, demo_badge %}
 
-{% block title %}{{ device.name }}{% endblock %}
+{% block title %}{{ device.name }} | Ficha Técnica{% endblock %}
+
 {% block page_header %}
   <span class="inline-flex items-center gap-2.5">
     {{ device_type_icon(device.device_type) }}
     <span>{{ device.name }}</span>
   </span>
 {% endblock %}
-{% block page_subtitle %}Información del aparato, sus permisos de acceso y sus horarios programados{% endblock %}
+
+{% block page_subtitle %}
+  Identificador: <span class="font-mono-code font-bold">{{ device.internal_code }}</span> &bull; Dirección IP: <span class="font-mono-code font-bold">{{ device.ip_address }}</span> &bull; Ámbito: <span class="font-mono-code">{{ device.network_scope }}</span>
+{% endblock %}
 
 {% block header_actions %}
   <a href="{{ url_for('devices.index') }}" class="btn-secondary">
     &larr; Volver a Dispositivos
   </a>
   {% if current_user.can_modify %}
-    <a href="{{ url_for('devices.edit', device_id=device.id) }}" class="btn-primary">
-      Editar Equipo
-    </a>
+    <form method="POST" action="{{ url_for('devices.sync_router', device_id=device.id) }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit" class="btn-secondary text-xs">Sincronizar con Router</button>
+    </form>
   {% endif %}
 {% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-  <!-- Tarjeta principal de información del dispositivo -->
-  <div class="surface-card p-6 space-y-5">
-    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
-      <div class="flex items-center gap-3 flex-wrap">
-        <span class="font-mono-code text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 theme-text-secondary">{{ device.internal_code }}</span>
-        {{ device_status_badge(device.admin_status, device.admin_status_label) }}
-        {{ demo_badge(device.is_demo) }}
-      </div>
-      <div class="flex items-center gap-2">
-        {{ router_sync_badge(device.router_sync_status, device.router_sync_label) }}
-        {% if current_user.can_modify %}
-          <form method="POST" action="{{ url_for('devices.sync_router', device_id=device.id) }}" class="inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="btn-secondary text-xs">Actualizar estado</button>
-          </form>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="surface-subtle p-4">
-        <div class="text-xs theme-text-muted">Perfil y Asignación</div>
-        <div class="font-bold text-sm theme-text-primary mt-1">
-          <span class="px-2 py-0.5 rounded-md text-xs bg-blue-950 text-blue-300 border border-blue-800/60 font-semibold">{{ device.profile_label }}</span>
-        </div>
-        <div class="text-xs theme-text-secondary mt-1.5">{{ device.owner_label or 'Uso general en casa' }} &bull; {{ device.type_label }}</div>
-      </div>
-
-      <div class="surface-subtle p-4">
-        <div class="text-xs theme-text-muted">Dirección IP en Casa</div>
-        <div class="font-mono-code font-bold text-base theme-text-primary mt-1">{{ device.ip_address }}</div>
-        <div class="text-xs theme-text-secondary mt-0.5">{{ device.ip_assignment_label }}</div>
-      </div>
-
-      <div class="surface-subtle p-4">
-        <div class="text-xs theme-text-muted">Identificador Físico (MAC)</div>
-        <div class="font-mono-code font-semibold text-sm theme-text-primary mt-1">
-          {{ device.mac_address or 'No registrada' }}
-        </div>
-        <div class="text-xs theme-text-secondary mt-0.5">Red: {{ device.network_scope }}</div>
-      </div>
-
-      <div class="surface-subtle p-4">
-        <div class="text-xs theme-text-muted">Fecha de Registro</div>
-        <div class="font-semibold text-sm theme-text-primary mt-1">
-          {{ device.created_at.strftime('%d/%m/%Y %H:%M') if device.created_at else '' }}
-        </div>
-        <div class="text-xs theme-text-secondary mt-0.5">{{ device.hostname or 'Sin nombre técnico' }}</div>
-      </div>
-    </div>
-
-    {% if device.description %}
-    <div class="surface-subtle p-4 text-sm">
-      <span class="font-semibold theme-text-primary block mb-0.5">Notas sobre este aparato:</span>
-      <span class="theme-text-secondary">{{ device.description }}</span>
-    </div>
+  <!-- Pestañas de Navegación de la Ficha Unificada -->
+  <div class="flex border-b border-slate-800 space-x-2">
+    <button
+      type="button"
+      data-tab-target="tab-ficha"
+      class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-150 {% if active_tab == 'ficha' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
+    >
+      Ficha Técnica y Permisos
+    </button>
+    {% if current_user.can_modify %}
+      <button
+        type="button"
+        data-tab-target="tab-editor"
+        class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-150 {% if active_tab == 'editor' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
+      >
+        Editar Parámetros de Red
+      </button>
+      <button
+        type="button"
+        data-tab-target="tab-family"
+        class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-150 {% if active_tab == 'family' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
+      >
+        Control Familiar de Internet
+      </button>
     {% endif %}
   </div>
 
-  <!-- Permisos y Horarios en 2 columnas claras -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Permisos del equipo -->
-    <div class="surface-card p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-base font-bold theme-text-primary inline-flex items-center gap-2">
-            <svg class="w-4 h-4 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Permisos de Acceso ({{ device.policies|length }})
-          </h2>
-          <p class="text-xs theme-text-secondary">Reglas activas para este aparato</p>
+  <!-- PESTAÑA 1: FICHA TÉCNICA Y PERMISOS -->
+  <div id="tab-ficha" class="tab-content {% if active_tab != 'ficha' %}hidden{% endif %} space-y-6">
+
+    <!-- Tarjeta principal de especificaciones -->
+    <div class="surface-card p-6 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="font-mono-code text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 theme-text-secondary">{{ device.internal_code }}</span>
+          {{ device_status_badge(device.admin_status, device.admin_status_label) }}
+          {{ demo_badge(device.is_demo) }}
         </div>
-        {% if current_user.can_modify %}
-          <a href="{{ url_for('policies.create', device_id=device.id) }}" class="btn-primary text-xs">+ Nuevo Permiso</a>
-        {% endif %}
+        <div class="flex items-center gap-2">
+          {{ router_sync_badge(device.router_sync_status, device.router_sync_label) }}
+        </div>
       </div>
 
-      {% if device.policies %}
-        <div class="space-y-3">
-          {% for pol in device.policies %}
-            <div class="surface-subtle p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div>
-                <a href="{{ url_for('policies.detail', policy_id=pol.id) }}" class="font-bold text-sm theme-text-primary hover:underline">
-                  {{ pol.name }}
-                </a>
-                <div class="text-xs theme-text-secondary mt-0.5">
-                  {{ pol.policy_type_label }} &bull;
-                  Hasta: {{ pol.valid_until.strftime('%d/%m/%Y %H:%M') if pol.valid_until else 'Permanente' }}
-                </div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                {{ policy_action_badge(pol.action, pol.action_label) }}
-                {{ policy_status_badge(pol.effective_status, pol.effective_status_label) }}
-              </div>
-            </div>
-          {% endfor %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="surface-subtle p-4">
+          <div class="text-xs theme-text-muted">Perfil y Asignación</div>
+          <div class="font-bold text-sm theme-text-primary mt-1">
+            <span class="px-2 py-0.5 rounded-md text-xs bg-blue-950 text-blue-300 border border-blue-800/60 font-semibold">{{ device.profile_label }}</span>
+          </div>
+          <div class="text-xs theme-text-secondary mt-1.5">{{ device.owner_label or 'Uso general en casa' }} &bull; {{ device.type_label }}</div>
         </div>
-      {% else %}
-        <div class="py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
-          Este aparato aún no tiene reglas especiales configuradas.
+
+        <div class="surface-subtle p-4">
+          <div class="text-xs theme-text-muted">Dirección IP en Casa</div>
+          <div class="font-mono-code font-bold text-base theme-text-primary mt-1">{{ device.ip_address }}</div>
+          <div class="text-xs theme-text-secondary mt-0.5">{{ device.ip_assignment_label }}</div>
         </div>
+
+        <div class="surface-subtle p-4">
+          <div class="text-xs theme-text-muted">Identificador Físico (MAC)</div>
+          <div class="font-mono-code font-semibold text-sm theme-text-primary mt-1">
+            {{ device.mac_address or 'No registrada' }}
+          </div>
+          <div class="text-xs theme-text-secondary mt-0.5">Ámbito: {{ device.network_scope }}</div>
+        </div>
+
+        <div class="surface-subtle p-4">
+          <div class="text-xs theme-text-muted">Fecha de Registro</div>
+          <div class="font-semibold text-sm theme-text-primary mt-1">
+            {{ device.created_at.strftime('%d/%m/%Y %H:%M') if device.created_at else '' }}
+          </div>
+          <div class="text-xs theme-text-secondary mt-0.5">{{ device.hostname or 'Sin nombre técnico' }}</div>
+        </div>
+      </div>
+
+      {% if device.description %}
+      <div class="surface-subtle p-4 text-sm">
+        <span class="font-semibold theme-text-primary block mb-0.5">Notas sobre este aparato:</span>
+        <span class="theme-text-secondary">{{ device.description }}</span>
+      </div>
       {% endif %}
     </div>
 
-    <!-- Horarios del equipo -->
-    <div class="surface-card p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-base font-bold theme-text-primary inline-flex items-center gap-2">
-            <svg class="w-4 h-4 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
-            Horarios de Uso ({{ device.schedules|length }})
-          </h2>
-          <p class="text-xs theme-text-secondary">Días y horas programadas</p>
+    <!-- Permisos y Horarios en 2 columnas -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Permisos del equipo -->
+      <div class="surface-card p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold theme-text-primary inline-flex items-center gap-2">
+              <svg class="w-4 h-4 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Permisos de Acceso ({{ device.policies|length }})
+            </h2>
+            <p class="text-xs theme-text-secondary">Reglas activas para este aparato</p>
+          </div>
+          {% if current_user.can_modify %}
+            <a href="{{ url_for('policies.create', device_id=device.id) }}" class="btn-primary text-xs">+ Nuevo Permiso</a>
+          {% endif %}
         </div>
-        {% if current_user.can_modify %}
-          <a href="{{ url_for('schedules.create', device_id=device.id) }}" class="btn-primary text-xs">+ Nuevo Horario</a>
-        {% endif %}
-      </div>
 
-      {% if device.schedules %}
-        <div class="space-y-3">
-          {% for sch in device.schedules %}
-            <div class="surface-subtle p-3.5 flex items-center justify-between gap-2">
-              <div>
-                <div class="font-bold text-sm theme-text-primary">{{ sch.label }}</div>
-                <div class="text-xs theme-text-secondary mt-0.5">
-                  {{ sch.days_human_label }} &bull; <strong>{{ sch.start_time }} a {{ sch.end_time }}</strong>
-                  {% if sch.crosses_midnight %}(Cruza medianoche){% endif %}
+        {% if device.policies %}
+          <div class="space-y-3">
+            {% for pol in device.policies %}
+              <div class="surface-subtle p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div>
+                  <a href="{{ url_for('policies.detail', policy_id=pol.id) }}" class="font-bold text-sm theme-text-primary hover:underline">
+                    {{ pol.name }}
+                  </a>
+                  <div class="text-xs theme-text-secondary mt-0.5">
+                    {{ pol.policy_type_label }}
+                    {% if pol.is_intermittent %}
+                      &bull; <span class="text-cyan-400 font-semibold">{{ pol.intermittent_summary }}</span>
+                    {% endif %}
+                    &bull; Hasta: {{ pol.valid_until.strftime('%d/%m/%Y %H:%M') if pol.valid_until else 'Permanente' }}
+                  </div>
                 </div>
-              </div>
-              <div class="shrink-0">
-                {% if sch.is_in_window_at() %}
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">Activo ahora</span>
-                {% elif sch.is_active %}
-                  <span class="px-2.5 py-1 rounded-full text-xs bg-slate-800 theme-text-secondary">Programado</span>
-                {% else %}
-                  <span class="px-2.5 py-1 rounded-full text-xs bg-slate-900 theme-text-muted">En pausa</span>
-                {% endif %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
-          Sin horarios configurados para este aparato.
-        </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Detalles técnicos para revisión académica ocultos en un bloque desplegable limpio -->
-  <details class="surface-card p-5">
-    <summary class="cursor-pointer text-sm font-bold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
-      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      Ver registro técnico de cambios y simulador de router (Opcional)
-    </summary>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4 pt-4 border-t border-slate-800 text-xs">
-      <div>
-        <h3 class="font-bold theme-text-primary mb-2">Directiva técnica en el Adaptador</h3>
-        {% if sync_logs %}
-          <pre class="p-3 rounded-xl bg-slate-900 border border-slate-800 font-mono-code text-cyan-300 overflow-x-auto whitespace-pre-wrap">{{ sync_logs[0].command_preview }}</pre>
-          <p class="theme-text-secondary mt-2">{{ sync_logs[0].response_detail }}</p>
-        {% else %}
-          <p class="theme-text-muted">Pendiente de sincronizar con el simulador.</p>
-        {% endif %}
-      </div>
-
-      <div>
-        <h3 class="font-bold theme-text-primary mb-2">Historial reciente de este equipo</h3>
-        {% if audit_history %}
-          <div class="space-y-2">
-            {% for log in audit_history[:5] %}
-              <div class="surface-subtle p-2.5">
-                <div class="font-semibold theme-text-primary">{{ log.description }}</div>
-                <div class="font-mono-code text-[11px] theme-text-muted mt-0.5">{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') if log.created_at else '' }}</div>
+                <div class="flex items-center gap-2 shrink-0">
+                  {{ policy_action_badge(pol.action, pol.action_label) }}
+                  {{ policy_status_badge(pol.effective_status, pol.effective_status_label) }}
+                </div>
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <p class="theme-text-muted">Sin eventos registrados.</p>
+          <div class="py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
+            Este aparato aún no tiene reglas especiales configuradas.
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Horarios del equipo -->
+      <div class="surface-card p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold theme-text-primary inline-flex items-center gap-2">
+              <svg class="w-4 h-4 text-blue-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+              Horarios de Uso ({{ device.schedules|length }})
+            </h2>
+            <p class="text-xs theme-text-secondary">Días y horas programadas</p>
+          </div>
+          {% if current_user.can_modify %}
+            <a href="{{ url_for('schedules.create', device_id=device.id) }}" class="btn-primary text-xs">+ Nuevo Horario</a>
+          {% endif %}
+        </div>
+
+        {% if device.schedules %}
+          <div class="space-y-3">
+            {% for sch in device.schedules %}
+              <div class="surface-subtle p-3.5 flex items-center justify-between gap-2">
+                <div>
+                  <div class="font-bold text-sm theme-text-primary">{{ sch.label }}</div>
+                  <div class="text-xs theme-text-secondary mt-0.5">
+                    {{ sch.days_human_label }} &bull; <strong>{{ sch.start_time }} a {{ sch.end_time }}</strong>
+                    {% if sch.crosses_midnight %}(Cruza medianoche){% endif %}
+                  </div>
+                </div>
+                <div class="shrink-0">
+                  {% if sch.is_in_window_at() %}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">Activo ahora</span>
+                  {% elif sch.is_active %}
+                    <span class="px-2.5 py-1 rounded-full text-xs bg-slate-800 theme-text-secondary">Programado</span>
+                  {% else %}
+                    <span class="px-2.5 py-1 rounded-full text-xs bg-slate-900 theme-text-muted">En pausa</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
+            Sin horarios configurados para este aparato.
+          </div>
         {% endif %}
       </div>
     </div>
-  </details>
+
+    <!-- Registro técnico desplegable -->
+    <details class="surface-card p-5">
+      <summary class="cursor-pointer text-sm font-bold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Registro técnico de cambios y simulador de router (Auditoría)
+      </summary>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4 pt-4 border-t border-slate-800 text-xs">
+        <div>
+          <h3 class="font-bold theme-text-primary mb-2">Directiva técnica en el Adaptador</h3>
+          {% if sync_logs %}
+            <pre class="p-3 rounded-xl bg-slate-900 border border-slate-800 font-mono-code text-cyan-300 overflow-x-auto whitespace-pre-wrap">{{ sync_logs[0].command_preview }}</pre>
+            <p class="theme-text-secondary mt-2">{{ sync_logs[0].response_detail }}</p>
+          {% else %}
+            <p class="theme-text-muted">Pendiente de sincronizar con el simulador.</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <h3 class="font-bold theme-text-primary mb-2">Historial reciente de este equipo</h3>
+          {% if audit_history %}
+            <div class="space-y-2">
+              {% for log in audit_history[:5] %}
+                <div class="surface-subtle p-2.5">
+                  <div class="font-semibold theme-text-primary">{{ log.description }}</div>
+                  <div class="font-mono-code text-[11px] theme-text-muted mt-0.5">{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') if log.created_at else '' }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="theme-text-muted">Sin eventos registrados.</p>
+          {% endif %}
+        </div>
+      </div>
+    </details>
+
+  </div>
+
+  <!-- PESTAÑA 2: EDITOR INTEGRADO EN VER FICHA -->
+  {% if current_user.can_modify %}
+  <div id="tab-editor" class="tab-content {% if active_tab != 'editor' %}hidden{% endif %}">
+    <div class="surface-card p-6 sm:p-8 space-y-6">
+      <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold theme-text-primary">Editor de Parámetros de Red</h2>
+          <p class="text-xs theme-text-secondary mt-0.5">Modifica los identificadores y características técnicas directamente en la ficha del equipo.</p>
+        </div>
+        <span class="text-xs font-mono-code bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg">Código: {{ device.internal_code }}</span>
+      </div>
+
+      <form method="POST" action="{{ url_for('devices.detail', device_id=device.id) }}" class="space-y-6" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label for="editor_name" class="block text-sm font-semibold theme-text-primary mb-1">
+              Nombre descriptivo del aparato <span class="text-rose-400">*</span>
+            </label>
+            <input
+              id="editor_name"
+              name="name"
+              type="text"
+              required
+              maxlength="100"
+              value="{{ form_data.get('name', '') }}"
+              class="form-input-dark"
+            />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="editor_device_type" class="block text-sm font-semibold theme-text-primary">
+                Tipo de Dispositivo
+              </label>
+              {% if current_user.can_manage_categories %}
+                <button type="button" data-open-category-modal="device_type" class="text-xs text-blue-400 hover:underline font-medium">
+                  + Nueva Categoría
+                </button>
+              {% endif %}
+            </div>
+            <select id="editor_device_type" name="device_type" class="form-select-dark">
+              {% if device_types %}
+                {% for key, label in device_types.items() %}
+                  <option value="{{ key }}" {% if form_data.get('device_type') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% else %}
+                {% for key, label in device_Model.TYPE_LABELS.items() %}
+                  <option value="{{ key }}" {% if form_data.get('device_type') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="editor_profile" class="block text-sm font-semibold theme-text-primary">
+                Perfil de Red Familiar
+              </label>
+              {% if current_user.can_manage_categories %}
+                <button type="button" data-open-category-modal="device_profile" class="text-xs text-blue-400 hover:underline font-medium">
+                  + Nuevo Perfil
+                </button>
+              {% endif %}
+            </div>
+            <select id="editor_profile" name="profile" class="form-select-dark">
+              {% if device_profiles %}
+                {% for key, label in device_profiles.items() %}
+                  <option value="{{ key }}" {% if form_data.get('profile') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% else %}
+                {% for key, label in device_Model.PROFILE_LABELS.items() %}
+                  <option value="{{ key }}" {% if form_data.get('profile') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </div>
+
+          <div>
+            <label for="editor_ip_address" class="block text-sm font-semibold theme-text-primary mb-1">
+              Dirección IP asignada <span class="text-rose-400">*</span>
+            </label>
+            <input
+              id="editor_ip_address"
+              name="ip_address"
+              type="text"
+              required
+              data-validate-ip="true"
+              value="{{ form_data.get('ip_address', '') }}"
+              class="form-input-dark font-mono-code"
+            />
+            <div id="ip_feedback_box" class="text-[11px] mt-1 theme-text-muted">
+              Subred privada RFC 1918 esperada: <code class="font-mono-code">{{ device.network_scope }}</code>
+            </div>
+          </div>
+
+          <div>
+            <label for="editor_mac_address" class="block text-sm font-semibold theme-text-primary mb-1">
+              Dirección MAC física (Capa 2)
+            </label>
+            <input
+              id="editor_mac_address"
+              name="mac_address"
+              type="text"
+              maxlength="17"
+              data-validate-mac="true"
+              placeholder="AA:BB:CC:DD:EE:FF"
+              value="{{ form_data.get('mac_address', '') }}"
+              class="form-input-dark font-mono-code"
+            />
+            <div id="mac_feedback_box" class="text-[11px] mt-1 theme-text-muted">
+              Formato estándar de 6 pares hexadecimales separados por dos puntos.
+            </div>
+          </div>
+
+          <div>
+            <label for="editor_owner_label" class="block text-sm font-semibold theme-text-primary mb-1">
+              Persona asignada o ubicación
+            </label>
+            <input
+              id="editor_owner_label"
+              name="owner_label"
+              type="text"
+              maxlength="100"
+              value="{{ form_data.get('owner_label', '') }}"
+              class="form-input-dark"
+            />
+          </div>
+
+          <div>
+            <label for="editor_ip_assignment_type" class="block text-sm font-semibold theme-text-primary mb-1">
+              Método de Asignación IP
+            </label>
+            <select id="editor_ip_assignment_type" name="ip_assignment_type" class="form-select-dark">
+              {% for key, label in device_Model.IP_ASSIGNMENT_LABELS.items() %}
+                <option value="{{ key }}" {% if form_data.get('ip_assignment_type') == key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="editor_network_scope" class="block text-sm font-semibold theme-text-primary mb-1">
+              Ámbito de Red (CIDR)
+            </label>
+            <input
+              id="editor_network_scope"
+              name="network_scope"
+              type="text"
+              value="{{ form_data.get('network_scope', device.network_scope) }}"
+              class="form-input-dark font-mono-code"
+            />
+          </div>
+
+          <div>
+            <label for="editor_admin_status" class="block text-sm font-semibold theme-text-primary mb-1">
+              Estado Administrativo
+            </label>
+            <select id="editor_admin_status" name="admin_status" class="form-select-dark">
+              {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
+                <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label for="editor_description" class="block text-sm font-semibold theme-text-primary mb-1">
+              Notas u observaciones del equipo
+            </label>
+            <textarea
+              id="editor_description"
+              name="description"
+              rows="2"
+              class="form-textarea-dark"
+            >{{ form_data.get('description', '') }}</textarea>
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="inline-flex items-center gap-2 text-xs theme-text-secondary cursor-pointer">
+              <input type="checkbox" name="sync_with_adapter" value="1" checked class="rounded text-blue-600" />
+              <span>Sincronizar cambios inmediatamente con el adaptador de router</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+          <form
+            method="POST"
+            action="{{ url_for('devices.delete', device_id=device.id) }}"
+            data-confirm-title="Eliminar dispositivo"
+            data-confirm-message="¿Está seguro de que desea eliminar permanentemente este dispositivo y sus políticas asociadas?"
+            class="inline"
+          >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
+              Eliminar este Dispositivo
+            </button>
+          </form>
+
+          <div class="flex items-center gap-3">
+            <button type="button" data-tab-target="tab-ficha" class="btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary px-6 py-2">
+              Guardar Parámetros en Ficha
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PESTAÑA 3: CONTROL FAMILIAR AMIGABLE (ROL OPERADOR Y PADRES DE FAMILIA) -->
+  <div id="tab-family" class="tab-content {% if active_tab != 'family' %}hidden{% endif %} space-y-5">
+    <div class="surface-card p-6 space-y-4">
+      <div class="border-b border-slate-800 pb-3">
+        <h2 class="text-base font-bold theme-text-primary">Control Familiar de Acceso a Internet</h2>
+        <p class="text-xs theme-text-secondary mt-0.5">
+          Permite pausar o habilitar la conexión a Internet de este aparato con un solo clic, sin necesidad de configurar redes complejas.
+        </p>
+      </div>
+
+      <div class="surface-subtle p-4 flex items-center justify-between gap-4">
+        <div>
+          <span class="text-xs theme-text-muted uppercase tracking-wider block font-semibold">Estado actual de este equipo:</span>
+          <span class="text-base font-bold theme-text-primary mt-0.5 inline-block">{{ device.admin_status_label }}</span>
+        </div>
+        <div>
+          {{ device_status_badge(device.admin_status, device.admin_status_label) }}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+
+        <!-- Opción 1: Internet Libre -->
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if device.admin_status == 'authorized' %}border-emerald-600/80 bg-emerald-950/20{% else %}border-slate-800{% endif %}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="mode" value="allow" />
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-emerald-400">Internet Libre (Normal)</span>
+              {% if device.admin_status == 'authorized' %}
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300">Activo Ahora</span>
+              {% endif %}
+            </div>
+            <p class="text-xs theme-text-secondary leading-relaxed">
+              El aparato puede conectarse con total normalidad a cualquier sitio de Internet sin restricciones.
+            </p>
+          </div>
+          <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors">
+            Habilitar Internet Libre
+          </button>
+        </form>
+
+        <!-- Opción 2: Pausa Temporal -->
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if device.admin_status == 'restricted' %}border-amber-600/80 bg-amber-950/20{% else %}border-slate-800{% endif %}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="mode" value="pause" />
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-amber-400">Pausa Temporal de Internet</span>
+              {% if device.admin_status == 'restricted' %}
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-900/80 text-amber-300">Activo Ahora</span>
+              {% endif %}
+            </div>
+            <p class="text-xs theme-text-secondary leading-relaxed">
+              Pausa la conexión del aparato temporalmente. Ideal durante la hora de comida, convivencia familiar o descanso nocturno.
+            </p>
+          </div>
+          <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white transition-colors">
+            Pausar Internet Ahora
+          </button>
+        </form>
+
+        <!-- Opción 3: Modo Estudio -->
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border border-slate-800">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="mode" value="study" />
+          <div class="space-y-1.5">
+            <span class="font-bold text-sm text-blue-400">Modo Estudio y Tareas</span>
+            <p class="text-xs theme-text-secondary leading-relaxed">
+              Restringe el acceso para permitir únicamente plataformas escolares, bibliotecas digitales y herramientas de tareas.
+            </p>
+          </div>
+          <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors">
+            Activar Modo Estudio
+          </button>
+        </form>
+
+        <!-- Opción 4: Apagar Internet -->
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if device.admin_status == 'blocked' %}border-rose-600/80 bg-rose-950/20{% else %}border-slate-800{% endif %}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="mode" value="block" />
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-rose-400">Bloquear / Apagar Conexión</span>
+              {% if device.admin_status == 'blocked' %}
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-900/80 text-rose-300">Bloqueado</span>
+              {% endif %}
+            </div>
+            <p class="text-xs theme-text-secondary leading-relaxed">
+              Corta totalmente el acceso a Internet hacia este aparato hasta que decidas reactivarlo.
+            </p>
+          </div>
+          <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-colors">
+            Apagar Conexión
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
+
+{% include "components/category_modal.html" %}
 {% endblock %}

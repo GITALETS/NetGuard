@@ -5,6 +5,7 @@ Registro centralizado de Blueprints de rutas HTTP.
 from flask import Flask
 from app.routes.audit import audit_bp
 from app.routes.auth import auth_bp
+from app.routes.categories import categories_bp
 from app.routes.dashboard import dashboard_bp
 from app.routes.devices import devices_bp
 from app.routes.policies import policies_bp
@@ -22,4 +23,5 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(audit_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(categories_bp)
 

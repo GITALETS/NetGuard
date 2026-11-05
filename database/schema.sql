@@ -4,13 +4,8 @@
 -- "Sistema web para administración de dispositivos y políticas de acceso
 --  en redes domésticas mediante gestión de direcciones IP"
 -- =============================================================================
-
-CREATE DATABASE IF NOT EXISTS red_domestica_tesis
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
+CREATE DATABASE IF NOT EXISTS red_domestica_tesis CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE red_domestica_tesis;
-
 -- -----------------------------------------------------------------------------
 -- 1. Tabla: users (Usuarios autorizados para administrar el sistema)
 -- -----------------------------------------------------------------------------
@@ -27,11 +22,31 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT uq_users_username UNIQUE (username),
     CONSTRAINT uq_users_email UNIQUE (email),
-    CONSTRAINT chk_users_role CHECK (role IN ('admin', 'operator', 'auditor'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+    CONSTRAINT chk_users_role CHECK (role IN ('superadmin', 'admin', 'operator', 'auditor'))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE INDEX ix_users_role_active ON users (role, is_active);
 
+-- -----------------------------------------------------------------------------
+-- 1.1 Tabla: system_categories (Categorías Dinámicas para Tipos, Perfiles y Destinos)
+-- Permite que Administradores y Superadministradores agreguen nuevas opciones
+-- de categorización de hardware, perfiles familiares o destinos de red.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS system_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_type VARCHAR(32) NOT NULL,
+    code VARCHAR(40) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255) NULL,
+    is_system_default TINYINT(1) NOT NULL DEFAULT 0,
+    created_by_id INT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT uq_cat_type_code UNIQUE (category_type, code),
+    CONSTRAINT fk_categories_user FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE SET NULL,
+    CONSTRAINT chk_category_type CHECK (category_type IN ('device_type', 'device_profile', 'policy_target'))
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE INDEX ix_cat_type ON system_categories (category_type);
 -- -----------------------------------------------------------------------------
 -- 2. Tabla: devices (Dispositivos registrados en la red doméstica)
 -- Distingue entre identificador interno, nombre, dirección IP (temporal o fija)
@@ -59,23 +74,31 @@ CREATE TABLE IF NOT EXISTS devices (
     CONSTRAINT uq_devices_internal_code UNIQUE (internal_code),
     CONSTRAINT uq_device_ip_scope UNIQUE (ip_address, network_scope),
     CONSTRAINT uq_devices_mac_address UNIQUE (mac_address),
-    CONSTRAINT fk_devices_registered_by FOREIGN KEY (registered_by_id)
-        REFERENCES users (id) ON DELETE SET NULL,
-    CONSTRAINT chk_devices_admin_status CHECK (
-        admin_status IN ('authorized', 'restricted', 'blocked', 'pending')
-    ),
-    CONSTRAINT chk_devices_ip_assignment CHECK (
-        ip_assignment_type IN ('static_manual', 'dhcp_reservation', 'dhcp_dynamic_observed')
-    ),
-    CONSTRAINT chk_devices_router_sync CHECK (
-        router_sync_status IN ('only_in_db', 'simulated_applied', 'applied_confirmed', 'not_supported', 'sync_error')
-    )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+    CONSTRAINT fk_devices_registered_by FOREIGN KEY (registered_by_id) REFERENCES users (id) ON DELETE
+    SET NULL,
+        CONSTRAINT chk_devices_admin_status CHECK (
+            admin_status IN ('authorized', 'restricted', 'blocked', 'pending')
+        ),
+        CONSTRAINT chk_devices_ip_assignment CHECK (
+            ip_assignment_type IN (
+                'static_manual',
+                'dhcp_reservation',
+                'dhcp_dynamic_observed'
+            )
+        ),
+        CONSTRAINT chk_devices_router_sync CHECK (
+            router_sync_status IN (
+                'only_in_db',
+                'simulated_applied',
+                'applied_confirmed',
+                'not_supported',
+                'sync_error'
+            )
+        )
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE INDEX ix_devices_ip_address ON devices (ip_address);
 CREATE INDEX ix_devices_admin_status ON devices (admin_status);
 CREATE INDEX ix_devices_device_type ON devices (device_type);
-
 -- -----------------------------------------------------------------------------
 -- 3. Tabla: access_policies (Políticas de acceso asociadas a dispositivos)
 -- Separa el estado administrativo de la política (status) del estado real de
@@ -93,6 +116,13 @@ CREATE TABLE IF NOT EXISTS access_policies (
     valid_from DATETIME NOT NULL,
     valid_until DATETIME NULL,
     navigation_profile VARCHAR(160) NULL,
+    target_scope VARCHAR(32) NOT NULL DEFAULT 'all_traffic',
+    target_domain VARCHAR(255) NULL,
+    is_intermittent TINYINT(1) NOT NULL DEFAULT 0,
+    interval_active_minutes INT NOT NULL DEFAULT 30,
+    interval_pause_minutes INT NOT NULL DEFAULT 15,
+    current_cycle_state VARCHAR(32) NOT NULL DEFAULT 'active_window',
+    next_cycle_switch_at DATETIME NULL,
     observations TEXT NULL,
     enforcement_status VARCHAR(32) NOT NULL DEFAULT 'stored_in_db',
     last_evaluated_at DATETIME NULL,
@@ -100,36 +130,36 @@ CREATE TABLE IF NOT EXISTS access_policies (
     created_by_id INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_policies_device FOREIGN KEY (device_id)
-        REFERENCES devices (id) ON DELETE CASCADE,
-    CONSTRAINT fk_policies_created_by FOREIGN KEY (created_by_id)
-        REFERENCES users (id) ON DELETE SET NULL,
-    CONSTRAINT chk_policies_type CHECK (
-        policy_type IN (
-            'administrative_auth',
-            'temporary_access',
-            'allowed_schedule',
-            'navigation_restriction',
-            'permanent_access'
+    CONSTRAINT fk_policies_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE,
+    CONSTRAINT fk_policies_created_by FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE
+    SET NULL,
+        CONSTRAINT chk_policies_type CHECK (
+            policy_type IN (
+                'administrative_auth',
+                'temporary_access',
+                'allowed_schedule',
+                'navigation_restriction',
+                'permanent_access',
+                'intermittent_intermediary'
+            )
+        ),
+        CONSTRAINT chk_policies_action CHECK (action IN ('allow', 'restrict', 'block')),
+        CONSTRAINT chk_policies_status CHECK (
+            status IN ('active', 'paused', 'revoked', 'expired')
+        ),
+        CONSTRAINT chk_policies_enforcement CHECK (
+            enforcement_status IN (
+                'stored_in_db',
+                'simulated_in_lab',
+                'applied_in_router',
+                'unsupported_by_router',
+                'sync_error'
+            )
         )
-    ),
-    CONSTRAINT chk_policies_action CHECK (action IN ('allow', 'restrict', 'block')),
-    CONSTRAINT chk_policies_status CHECK (status IN ('active', 'paused', 'revoked', 'expired')),
-    CONSTRAINT chk_policies_enforcement CHECK (
-        enforcement_status IN (
-            'stored_in_db',
-            'simulated_in_lab',
-            'applied_in_router',
-            'unsupported_by_router',
-            'sync_error'
-        )
-    )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE INDEX ix_policies_device_status ON access_policies (device_id, status);
 CREATE INDEX ix_policies_type ON access_policies (policy_type);
 CREATE INDEX ix_policies_validity ON access_policies (valid_from, valid_until);
-
 -- -----------------------------------------------------------------------------
 -- 4. Tabla: access_schedules (Horarios programados por dispositivo o política)
 -- Soporta ventanas dentro del mismo día y ventanas que cruzan la medianoche.
@@ -150,20 +180,17 @@ CREATE TABLE IF NOT EXISTS access_schedules (
     created_by_id INT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_schedules_device FOREIGN KEY (device_id)
-        REFERENCES devices (id) ON DELETE CASCADE,
-    CONSTRAINT fk_schedules_policy FOREIGN KEY (policy_id)
-        REFERENCES access_policies (id) ON DELETE SET NULL,
-    CONSTRAINT fk_schedules_created_by FOREIGN KEY (created_by_id)
-        REFERENCES users (id) ON DELETE SET NULL,
-    CONSTRAINT chk_schedules_behavior CHECK (
-        window_behavior IN ('allowed_window', 'restricted_window')
-    )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+    CONSTRAINT fk_schedules_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE,
+    CONSTRAINT fk_schedules_policy FOREIGN KEY (policy_id) REFERENCES access_policies (id) ON DELETE
+    SET NULL,
+        CONSTRAINT fk_schedules_created_by FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE
+    SET NULL,
+        CONSTRAINT chk_schedules_behavior CHECK (
+            window_behavior IN ('allowed_window', 'restricted_window')
+        )
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE INDEX ix_schedules_device_active ON access_schedules (device_id, is_active);
 CREATE INDEX ix_schedules_policy ON access_schedules (policy_id);
-
 -- -----------------------------------------------------------------------------
 -- 5. Tabla: audit_logs (Historial inmutable de eventos y auditoría del sistema)
 -- -----------------------------------------------------------------------------
@@ -180,17 +207,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     target_id VARCHAR(40) NULL,
     description TEXT NOT NULL,
     metadata_json TEXT NULL,
-    CONSTRAINT fk_audit_user FOREIGN KEY (user_id)
-        REFERENCES users (id) ON DELETE SET NULL,
-    CONSTRAINT chk_audit_severity CHECK (
-        severity IN ('info', 'warning', 'error', 'security')
-    )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+    CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE
+    SET NULL,
+        CONSTRAINT chk_audit_severity CHECK (
+            severity IN ('info', 'warning', 'error', 'security')
+        )
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE INDEX ix_audit_created_at ON audit_logs (created_at);
 CREATE INDEX ix_audit_event_module ON audit_logs (module, event_type);
 CREATE INDEX ix_audit_severity ON audit_logs (severity);
-
 -- -----------------------------------------------------------------------------
 -- 6. Tabla: router_sync_logs (Trazabilidad de comunicación con adaptador router)
 -- Justificación técnica: Registra cada intento de traducir una política de la
@@ -209,14 +234,12 @@ CREATE TABLE IF NOT EXISTS router_sync_logs (
     command_preview TEXT NULL,
     response_detail TEXT NULL,
     triggered_by_id INT NULL,
-    CONSTRAINT fk_rsync_device FOREIGN KEY (device_id)
-        REFERENCES devices (id) ON DELETE SET NULL,
-    CONSTRAINT fk_rsync_policy FOREIGN KEY (policy_id)
-        REFERENCES access_policies (id) ON DELETE SET NULL,
-    CONSTRAINT fk_rsync_user FOREIGN KEY (triggered_by_id)
-        REFERENCES users (id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+    CONSTRAINT fk_rsync_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE
+    SET NULL,
+        CONSTRAINT fk_rsync_policy FOREIGN KEY (policy_id) REFERENCES access_policies (id) ON DELETE
+    SET NULL,
+        CONSTRAINT fk_rsync_user FOREIGN KEY (triggered_by_id) REFERENCES users (id) ON DELETE
+    SET NULL
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 CREATE INDEX ix_rsync_created_at ON router_sync_logs (created_at);
 CREATE INDEX ix_rsync_device ON router_sync_logs (device_id);
-

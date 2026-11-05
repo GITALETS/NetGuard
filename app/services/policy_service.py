@@ -136,6 +136,19 @@ def create_policy(
     policy_type = (data.get("policy_type") or "").strip()
     action = (data.get("action") or "allow").strip()
     navigation_profile = (data.get("navigation_profile") or "").strip() or None
+    target_scope = (data.get("target_scope") or "all_traffic").strip()
+    target_domain = (data.get("target_domain") or "").strip() or None
+    is_intermittent = bool(data.get("is_intermittent") in (True, "1", "true") or policy_type == "intermittent_intermediary")
+
+    try:
+        interval_active = int(data.get("interval_active_minutes", 30))
+    except (ValueError, TypeError):
+        interval_active = 30
+
+    try:
+        interval_pause = int(data.get("interval_pause_minutes", 15))
+    except (ValueError, TypeError):
+        interval_pause = 15
 
     valid_from = parse_datetime_input(data.get("valid_from"), "Fecha de inicio", required=True)
     valid_until = parse_datetime_input(data.get("valid_until"), "Fecha de finalización", required=False)
@@ -146,6 +159,11 @@ def create_policy(
         valid_from=valid_from,
         valid_until=valid_until,
         navigation_profile=navigation_profile,
+        target_scope=target_scope,
+        target_domain=target_domain,
+        is_intermittent=is_intermittent,
+        interval_active=interval_active,
+        interval_pause=interval_pause,
     )
 
     try:
@@ -184,6 +202,12 @@ def create_policy(
         valid_from=valid_from,
         valid_until=valid_until,
         navigation_profile=navigation_profile,
+        target_scope=target_scope,
+        target_domain=target_domain,
+        is_intermittent=is_intermittent,
+        interval_active_minutes=interval_active,
+        interval_pause_minutes=interval_pause,
+        current_cycle_state="active_window",
         observations=(data.get("observations") or "").strip() or None,
         enforcement_status="stored_in_db",
         last_evaluated_at=now,
@@ -241,6 +265,19 @@ def update_policy(
     policy_type = (data.get("policy_type") or policy.policy_type).strip()
     action = (data.get("action") or policy.action).strip()
     navigation_profile = (data.get("navigation_profile") or "").strip() or None
+    target_scope = (data.get("target_scope") or getattr(policy, "target_scope", "all_traffic")).strip()
+    target_domain = (data.get("target_domain") or "").strip() or None
+    is_intermittent = bool(data.get("is_intermittent") in (True, "1", "true") or policy_type == "intermittent_intermediary")
+
+    try:
+        interval_active = int(data.get("interval_active_minutes", getattr(policy, "interval_active_minutes", 30)))
+    except (ValueError, TypeError):
+        interval_active = 30
+
+    try:
+        interval_pause = int(data.get("interval_pause_minutes", getattr(policy, "interval_pause_minutes", 15)))
+    except (ValueError, TypeError):
+        interval_pause = 15
 
     valid_from = parse_datetime_input(data.get("valid_from", policy.valid_from), "Fecha de inicio", required=True)
     valid_until = parse_datetime_input(data.get("valid_until"), "Fecha de finalización", required=False)
@@ -251,6 +288,11 @@ def update_policy(
         valid_from=valid_from,
         valid_until=valid_until,
         navigation_profile=navigation_profile,
+        target_scope=target_scope,
+        target_domain=target_domain,
+        is_intermittent=is_intermittent,
+        interval_active=interval_active,
+        interval_pause=interval_pause,
     )
 
     try:
@@ -289,6 +331,11 @@ def update_policy(
     policy.valid_from = valid_from
     policy.valid_until = valid_until
     policy.navigation_profile = navigation_profile
+    policy.target_scope = target_scope
+    policy.target_domain = target_domain
+    policy.is_intermittent = is_intermittent
+    policy.interval_active_minutes = interval_active
+    policy.interval_pause_minutes = interval_pause
     policy.observations = (data.get("observations") or "").strip() or None
     policy.enforcement_status = "stored_in_db"
     policy.last_evaluated_at = now

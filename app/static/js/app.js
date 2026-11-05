@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initScheduleFormHelper();
   initSubmitLoadingIndicator();
   initPasswordToggles();
+  initDeviceDetailTabs();
+  initLiveNetworkValidators();
+  initCategoryQuickAddModal();
 });
 
 /**
@@ -181,7 +184,35 @@ function initPolicyFormHelper() {
         navProfileGroup.classList.add("hidden");
       }
     }
+
+    // Intermediario e Intermitencia de Accesos
+    const targetScopeSelect = document.getElementById("target_scope");
+    const targetDomainGroup = document.getElementById("target_domain_group");
+    const intermittentCheckbox = document.getElementById("is_intermittent");
+    const intermittentSettings = document.getElementById("intermittent_settings");
+
+    if (targetScopeSelect && targetDomainGroup) {
+      if (targetScopeSelect.value === "specific_domain") {
+        targetDomainGroup.classList.remove("hidden");
+      } else {
+        targetDomainGroup.classList.add("hidden");
+      }
+    }
+
+    if (intermittentCheckbox && intermittentSettings) {
+      const isInter = intermittentCheckbox.checked || typeVal === "intermittent_intermediary";
+      if (isInter) {
+        intermittentSettings.classList.remove("hidden");
+      } else {
+        intermittentSettings.classList.add("hidden");
+      }
+    }
   };
+
+  const targetScopeSelect = document.getElementById("target_scope");
+  const intermittentCheckbox = document.getElementById("is_intermittent");
+  if (targetScopeSelect) targetScopeSelect.addEventListener("change", updateFields);
+  if (intermittentCheckbox) intermittentCheckbox.addEventListener("change", updateFields);
 
   typeSelect.addEventListener("change", updateFields);
   updateFields();
@@ -298,5 +329,264 @@ function initPasswordToggles() {
         if (eyeClosed) eyeClosed.classList.add("hidden");
       }
     });
+  });
+}
+
+/**
+ * Controla las pestañas de la Ficha Técnica Unificada (Ficha, Editor y Control Familiar).
+ */
+function initDeviceDetailTabs() {
+  const tabBtns = document.querySelectorAll("[data-tab-target]");
+  if (!tabBtns.length) return;
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("data-tab-target");
+
+      // Actualizar estado visual de los botones de pestañas
+      tabBtns.forEach((b) => {
+        b.classList.remove("border-blue-500", "text-blue-400");
+        b.classList.add("border-transparent", "theme-text-secondary");
+      });
+      btn.classList.add("border-blue-500", "text-blue-400");
+      btn.classList.remove("border-transparent", "theme-text-secondary");
+
+      // Mostrar el contenedor correspondiente
+      document.querySelectorAll(".tab-content").forEach((panel) => {
+        panel.classList.add("hidden");
+      });
+      const activePanel = document.getElementById(targetId);
+      if (activePanel) {
+        activePanel.classList.remove("hidden");
+      }
+
+      // Actualizar URL amigable sin recargar la página
+      const tabParam = targetId.replace("tab-", "");
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set("tab", tabParam);
+      window.history.replaceState({}, "", newUrl);
+    });
+  });
+}
+
+/**
+ * Validaciones reactivas en Front-End para Direcciones IP RFC 1918 y Direcciones MAC.
+ */
+function initLiveNetworkValidators() {
+  // Validación reactiva de IP
+  const ipInputs = document.querySelectorAll('[data-validate-ip="true"], #ip_address, #editor_ip_address');
+  ipInputs.forEach((input) => {
+    const feedbackBox = document.getElementById("ip_feedback_box");
+    input.addEventListener("input", () => {
+      const val = input.value.trim();
+      if (!val) {
+        input.classList.remove("border-emerald-500", "border-rose-500", "border-amber-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 theme-text-muted";
+          feedbackBox.textContent = "Ingrese la dirección IP privada del dispositivo (ej. 192.168.1.50).";
+        }
+        return;
+      }
+
+      const parts = val.split(".");
+      const isValidShape = parts.length === 4 && parts.every((p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255);
+
+      if (!isValidShape) {
+        input.classList.add("border-rose-500");
+        input.classList.remove("border-emerald-500", "border-amber-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-medium";
+          feedbackBox.textContent = "Formato IP incompleto o inválido. Deben ser 4 números entre 0 y 255 separados por punto.";
+        }
+        return;
+      }
+
+      const lastOctet = Number(parts[3]);
+      if (lastOctet === 1) {
+        input.classList.add("border-amber-500");
+        input.classList.remove("border-emerald-500", "border-rose-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-amber-400 font-semibold";
+          feedbackBox.textContent = "Atención: La dirección terminada en .1 suele ser el Router doméstico y no debe asignarse a un dispositivo.";
+        }
+      } else if (lastOctet === 0 || lastOctet === 255) {
+        input.classList.add("border-rose-500");
+        input.classList.remove("border-emerald-500", "border-amber-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-semibold";
+          feedbackBox.textContent = "Dirección no asignable: .0 es la dirección de red y .255 es la dirección de broadcast.";
+        }
+      } else {
+        input.classList.add("border-emerald-500");
+        input.classList.remove("border-rose-500", "border-amber-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-emerald-400 font-medium";
+          feedbackBox.textContent = "Dirección IP válida y conforme a los rangos privados RFC 1918.";
+        }
+      }
+    });
+  });
+
+  // Validación y auto-formateo reactivo de MAC
+  const macInputs = document.querySelectorAll('[data-validate-mac="true"], #mac_address, #editor_mac_address');
+  macInputs.forEach((input) => {
+    const feedbackBox = document.getElementById("mac_feedback_box");
+    input.addEventListener("input", (e) => {
+      let raw = input.value.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+      if (raw.length > 12) raw = raw.slice(0, 12);
+
+      // Auto-insertar dos puntos
+      const formatted = raw.match(/.{1,2}/g)?.join(":") || "";
+      input.value = formatted;
+
+      if (!formatted) {
+        input.classList.remove("border-emerald-500", "border-rose-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 theme-text-muted";
+          feedbackBox.textContent = "Formato estándar de 6 pares hexadecimales separados por dos puntos (Opcional).";
+        }
+        return;
+      }
+
+      if (raw.length === 12) {
+        input.classList.add("border-emerald-500");
+        input.classList.remove("border-rose-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-emerald-400 font-medium";
+          feedbackBox.textContent = "Dirección MAC física válida de 48 bits (Capa de Enlace).";
+        }
+      } else {
+        input.classList.add("border-rose-500");
+        input.classList.remove("border-emerald-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-medium";
+          feedbackBox.textContent = `Dirección MAC incompleta (${raw.length}/12 caracteres hexadecimales).`;
+        }
+      }
+    });
+  });
+}
+
+/**
+ * Controla el modal de alta rápida de Categorías Dinámicas (Admin y Superadmin).
+ */
+function initCategoryQuickAddModal() {
+  const modal = document.getElementById("category-modal");
+  const closeBtn = document.getElementById("category-modal-close");
+  const cancelBtn = document.getElementById("category-modal-cancel");
+  const form = document.getElementById("category-quick-form");
+  const typeInput = document.getElementById("modal-category-type");
+  const nameInput = document.getElementById("modal-category-name");
+  const descInput = document.getElementById("modal-category-desc");
+  const errorBox = document.getElementById("modal-category-error");
+  const titleEl = document.getElementById("category-modal-title");
+
+  if (!modal || !form) return;
+
+  const closeModal = () => {
+    modal.classList.add("hidden");
+    if (errorBox) {
+      errorBox.classList.add("hidden");
+      errorBox.textContent = "";
+    }
+    if (nameInput) nameInput.value = "";
+    if (descInput) descInput.value = "";
+  };
+
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Abrir modal configurando el tipo
+  document.querySelectorAll("[data-open-category-modal]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const catType = btn.getAttribute("data-open-category-modal") || "device_type";
+      if (typeInput) typeInput.value = catType;
+
+      if (titleEl) {
+        if (catType === "device_type") {
+          titleEl.textContent = "Nueva Categoría de Dispositivo";
+        } else if (catType === "device_profile") {
+          titleEl.textContent = "Nuevo Perfil Familiar de Red";
+        } else {
+          titleEl.textContent = "Nueva Categoría del Sistema";
+        }
+      }
+
+      modal.classList.remove("hidden");
+      if (nameInput) setTimeout(() => nameInput.focus(), 50);
+    });
+  });
+
+  // Envío AJAX
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (errorBox) {
+      errorBox.classList.add("hidden");
+      errorBox.textContent = "";
+    }
+
+    const catType = typeInput ? typeInput.value : "device_type";
+    const nameVal = nameInput ? nameInput.value.trim() : "";
+    const descVal = descInput ? descInput.value.trim() : "";
+    const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || "";
+
+    if (!nameVal) {
+      if (errorBox) {
+        errorBox.textContent = "El nombre de la categoría es obligatorio.";
+        errorBox.classList.remove("hidden");
+      }
+      return;
+    }
+
+    try {
+      const response = await fetch("/categories/quick-add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrfToken,
+        },
+        body: JSON.stringify({
+          category_type: catType,
+          name: nameVal,
+          description: descVal,
+          csrf_token: csrfToken,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Fallo al registrar la categoría.");
+      }
+
+      const created = result.category;
+
+      // Inyectar la nueva opción en los selectores correspondientes
+      const targetSelectIds =
+        catType === "device_type"
+          ? ["device_type", "editor_device_type"]
+          : ["profile", "editor_profile"];
+
+      targetSelectIds.forEach((id) => {
+        const selectEl = document.getElementById(id);
+        if (selectEl) {
+          const newOpt = document.createElement("option");
+          newOpt.value = created.code;
+          newOpt.textContent = created.name;
+          newOpt.selected = true;
+          selectEl.appendChild(newOpt);
+        }
+      });
+
+      closeModal();
+    } catch (err) {
+      if (errorBox) {
+        errorBox.textContent = err.message || "Error al procesar la solicitud.";
+        errorBox.classList.remove("hidden");
+      }
+    }
   });
 }

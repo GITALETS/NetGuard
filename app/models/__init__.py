@@ -4,6 +4,7 @@ Exportación central de modelos de datos relacionales.
 
 from app.extensions import db, login_manager
 from app.models.audit import AuditLog
+from app.models.category import SystemCategory
 from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.router_event import RouterSyncLog
@@ -32,6 +33,7 @@ __all__ = [
     "AccessSchedule",
     "AuditLog",
     "RouterSyncLog",
+    "SystemCategory",
     "utc_now_naive",
 ]
 

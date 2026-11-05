@@ -14,14 +14,18 @@ def utc_now_naive() -> datetime:
 
 
 class User(UserMixin, db.Model):
-    """Representa un usuario autorizado para operar o auditar el sistema web."""
+    """
+    Representa un usuario autorizado para operar, administrar o auditar el sistema web.
+    Soporta jerarquía formal de roles: superadmin, admin, operator y auditor.
+    """
 
     __tablename__ = "users"
 
-    VALID_ROLES = ("admin", "operator", "auditor")
+    VALID_ROLES = ("superadmin", "admin", "operator", "auditor")
     ROLE_LABELS = {
-        "admin": "Administrador General",
-        "operator": "Operador de Red",
+        "superadmin": "Superadministrador (Control Total del Sistema)",
+        "admin": "Administrador de Red",
+        "operator": "Operador del Hogar (Control Familiar)",
         "auditor": "Auditor (Solo Lectura)",
     }
 
@@ -58,13 +62,34 @@ class User(UserMixin, db.Model):
         return self.ROLE_LABELS.get(self.role, self.role)
 
     @property
-    def can_modify(self) -> bool:
-        """Indica si el usuario tiene permisos de escritura sobre dispositivos y políticas."""
-        return self.is_active and self.role in ("admin", "operator")
+    def is_superadmin(self) -> bool:
+        """Indica si el usuario cuenta con el rol máximo de Superadministrador."""
+        return self.is_active and self.role == "superadmin"
 
     @property
     def is_admin(self) -> bool:
-        return self.is_active and self.role == "admin"
+        """Indica si el usuario tiene privilegios administrativos (superadmin o admin)."""
+        return self.is_active and self.role in ("superadmin", "admin")
+
+    @property
+    def is_operator(self) -> bool:
+        """Indica si el usuario tiene rol de Operador del Hogar."""
+        return self.is_active and self.role == "operator"
+
+    @property
+    def can_modify(self) -> bool:
+        """Indica si el usuario tiene permisos de escritura sobre dispositivos y políticas."""
+        return self.is_active and self.role in ("superadmin", "admin", "operator")
+
+    @property
+    def can_manage_categories(self) -> bool:
+        """Indica si el usuario puede crear o editar categorías dinámicas."""
+        return self.is_active and self.role in ("superadmin", "admin")
+
+    @property
+    def can_manage_users(self) -> bool:
+        """Indica si el usuario tiene autorización para dar de alta y gestionar cuentas."""
+        return self.is_active and self.role in ("superadmin", "admin")
 
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.role})>"

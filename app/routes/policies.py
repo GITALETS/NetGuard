@@ -82,6 +82,11 @@ def create():
         "valid_from": now_str,
         "valid_until": "",
         "navigation_profile": "",
+        "target_scope": "all_traffic",
+        "target_domain": "",
+        "is_intermittent": False,
+        "interval_active_minutes": 30,
+        "interval_pause_minutes": 15,
         "description": "",
         "observations": "",
     }
@@ -164,6 +169,11 @@ def edit(policy_id: int):
         "valid_from": policy.valid_from.strftime("%Y-%m-%dT%H:%M") if policy.valid_from else "",
         "valid_until": policy.valid_until.strftime("%Y-%m-%dT%H:%M") if policy.valid_until else "",
         "navigation_profile": policy.navigation_profile or "",
+        "target_scope": getattr(policy, "target_scope", "all_traffic"),
+        "target_domain": getattr(policy, "target_domain", "") or "",
+        "is_intermittent": getattr(policy, "is_intermittent", False),
+        "interval_active_minutes": getattr(policy, "interval_active_minutes", 30),
+        "interval_pause_minutes": getattr(policy, "interval_pause_minutes", 15),
         "observations": policy.observations or "",
     }
 

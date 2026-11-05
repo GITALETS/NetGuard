@@ -50,11 +50,15 @@ def create_device(
 
     device_type = (data.get("device_type") or "other").strip()
     if device_type not in Device.VALID_TYPES:
-        raise ValidationError(f"Tipo de dispositivo no válido: '{device_type}'.")
+        from app.models.category import SystemCategory
+        if not SystemCategory.query.filter_by(category_type="device_type", code=device_type).first():
+            raise ValidationError(f"Tipo de dispositivo no válido: '{device_type}'.")
 
     profile = (data.get("profile") or "family").strip()
     if profile not in Device.VALID_PROFILES:
-        profile = "family"
+        from app.models.category import SystemCategory
+        if not SystemCategory.query.filter_by(category_type="device_profile", code=profile).first():
+            profile = "family"
 
     admin_status = (data.get("admin_status") or "pending").strip()
     if admin_status not in Device.VALID_ADMIN_STATUSES:
@@ -174,7 +178,9 @@ def update_device(
 
     device_type = (data.get("device_type") or device.device_type).strip()
     if device_type not in Device.VALID_TYPES:
-        raise ValidationError(f"Tipo de dispositivo no válido: '{device_type}'.")
+        from app.models.category import SystemCategory
+        if not SystemCategory.query.filter_by(category_type="device_type", code=device_type).first():
+            raise ValidationError(f"Tipo de dispositivo no válido: '{device_type}'.")
 
     admin_status = (data.get("admin_status") or device.admin_status).strip()
     if admin_status not in Device.VALID_ADMIN_STATUSES:
@@ -228,7 +234,9 @@ def update_device(
     device.device_type = device_type
     profile = (data.get("profile") or getattr(device, "profile", "family") or "family").strip()
     if profile not in Device.VALID_PROFILES:
-        profile = "family"
+        from app.models.category import SystemCategory
+        if not SystemCategory.query.filter_by(category_type="device_profile", code=profile).first():
+            profile = "family"
     if getattr(device, "profile", None) != profile:
         changes["profile"] = {"from": getattr(device, "profile", "family"), "to": profile}
     device.profile = profile

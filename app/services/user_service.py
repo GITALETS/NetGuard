@@ -19,11 +19,14 @@ def create_user(
     email: str,
     full_name: str,
     password: str,
-    role: str = "admin",
+    role: str = "operator",
     is_active: bool = True,
     actor_user_id: Optional[int] = None,
 ) -> User:
-    """Crea un usuario del sistema aplicando hash seguro de contraseña y validaciones."""
+    """
+    Crea un usuario del sistema aplicando hash seguro de contraseña y validaciones.
+    Valida permisos jerárquicos: solo un superadmin puede crear otro superadmin.
+    """
     clean_username = (username or "").strip()
     clean_email = (email or "").strip().lower()
     clean_name = (full_name or "").strip()
@@ -41,6 +44,12 @@ def create_user(
         raise ValidationError(f"Rol de usuario inválido: '{clean_role}'.")
     if not password or len(password) < 8:
         raise ValidationError("La contraseña debe tener al menos 8 caracteres de longitud.")
+
+    # Jerarquía: Solo un Superadministrador puede crear a otro Superadministrador
+    if clean_role == "superadmin" and actor_user_id:
+        actor = db.session.get(User, actor_user_id)
+        if not actor or not actor.is_superadmin:
+            raise ValidationError("Solo un Superadministrador activo puede asignar el rol de Superadministrador.")
 
     if User.query.filter(db.func.lower(User.username) == clean_username.lower()).first():
         raise ValidationError(f"El nombre de usuario '{clean_username}' ya está registrado.")
@@ -103,22 +112,27 @@ def update_user_account(
     if existing_email:
         raise ValidationError(f"El correo '{clean_email}' ya está asignado a otro usuario.")
 
-    # Impedir que un administrador se desactive a sí mismo o se quite el rol admin siendo el único
+    # Jerarquía: Solo un Superadministrador puede modificar a otro Superadministrador o ascender a superadmin
+    if (new_role == "superadmin" or target_user.role == "superadmin") and actor_user:
+        if not actor_user.is_superadmin:
+            raise ValidationError("Solo un Superadministrador puede gestionar cuentas con dicho nivel de privilegio.")
+
+    # Impedir que un administrador o superadmin se desactive a sí mismo o se quite su rol siendo el único
     if actor_user and actor_user.id == target_user.id:
         if not new_active:
             raise ValidationError("No puede desactivar su propia cuenta en sesión activa.")
-        if target_user.role == "admin" and new_role != "admin":
-            raise ValidationError("No puede degradar su propio rol de Administrador General.")
+        if target_user.role in ("admin", "superadmin") and new_role not in ("admin", "superadmin"):
+            raise ValidationError("No puede degradar su propio rol administrativo.")
 
-    if target_user.role == "admin" and (not new_active or new_role != "admin"):
+    if target_user.role in ("admin", "superadmin") and (not new_active or new_role not in ("admin", "superadmin")):
         other_active_admins = User.query.filter(
-            User.role == "admin",
+            User.role.in_(["admin", "superadmin"]),
             User.is_active.is_(True),
             User.id != target_user.id,
         ).count()
         if other_active_admins == 0:
             raise ValidationError(
-                "Operación denegada: el sistema debe conservar al menos un Administrador General activo."
+                "Operación denegada: el sistema debe conservar al menos una cuenta con privilegios administrativos activa."
             )
 
     target_user.full_name = clean_name

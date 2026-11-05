@@ -1,0 +1,87 @@
+<!-- Modal accesible para Alta Rápida de Categorías Dinámicas (Admin y Superadmin) -->
+<div
+  id="category-modal"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="category-modal-title"
+>
+  <div class="surface-card w-full max-w-md mx-4 p-6 shadow-2xl border border-slate-700/80 space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div>
+        <h3 id="category-modal-title" class="text-base font-bold theme-text-primary">
+          Nueva Categoría Dinámica
+        </h3>
+        <p class="text-xs theme-text-secondary mt-0.5">
+          Agrega una nueva opción al catálogo sin modificar el sistema
+        </p>
+      </div>
+      <button
+        id="category-modal-close"
+        type="button"
+        class="text-slate-400 hover:text-slate-200 p-1 rounded-lg"
+        title="Cerrar ventana"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <form id="category-quick-form" class="space-y-4">
+      <input type="hidden" id="modal-category-type" name="category_type" value="device_type" />
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div>
+        <label for="modal-category-name" class="block text-xs font-semibold theme-text-primary mb-1">
+          Nombre descriptivo <span class="text-rose-400">*</span>
+        </label>
+        <input
+          id="modal-category-name"
+          name="name"
+          type="text"
+          required
+          maxlength="100"
+          placeholder="Ej. Consola Portátil, Asistente de Voz, Teletrabajo"
+          class="form-input-dark"
+        />
+        <p class="text-[11px] theme-text-muted mt-1">
+          Nombre que verán los usuarios en las listas desplegables.
+        </p>
+      </div>
+
+      <div>
+        <label for="modal-category-desc" class="block text-xs font-semibold theme-text-secondary mb-1">
+          Descripción o notas de uso (Opcional)
+        </label>
+        <textarea
+          id="modal-category-desc"
+          name="description"
+          rows="2"
+          maxlength="255"
+          placeholder="Ej. Equipos de uso laboral prioritario durante horario de oficina..."
+          class="form-textarea-dark text-xs"
+        ></textarea>
+      </div>
+
+      <div id="modal-category-error" class="hidden p-3 rounded-lg text-xs bg-rose-950/80 text-rose-300 border border-rose-800/80"></div>
+
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <button
+          id="category-modal-cancel"
+          type="button"
+          class="btn-secondary text-xs"
+        >
+          Cancelar
+        </button>
+        <button
+          id="category-modal-submit"
+          type="submit"
+          class="btn-primary text-xs"
+        >
+          Guardar Categoría
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

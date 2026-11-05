@@ -129,11 +129,19 @@ class Device(db.Model):
 
     @property
     def type_label(self) -> str:
-        return self.TYPE_LABELS.get(self.device_type, self.device_type)
+        if self.device_type in self.TYPE_LABELS:
+            return self.TYPE_LABELS[self.device_type]
+        from app.models.category import SystemCategory
+        cat = SystemCategory.query.filter_by(category_type="device_type", code=self.device_type).first()
+        return cat.name if cat else self.device_type
 
     @property
     def profile_label(self) -> str:
-        return self.PROFILE_LABELS.get(self.profile, self.profile)
+        if self.profile in self.PROFILE_LABELS:
+            return self.PROFILE_LABELS[self.profile]
+        from app.models.category import SystemCategory
+        cat = SystemCategory.query.filter_by(category_type="device_profile", code=self.profile).first()
+        return cat.name if cat else self.profile
 
     @property
     def admin_status_label(self) -> str:
