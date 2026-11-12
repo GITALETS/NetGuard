@@ -322,18 +322,68 @@
           </div>
 
           <div>
-            <label for="editor_ip_address" class="block text-sm font-semibold theme-text-primary mb-1">
+            <label class="block text-sm font-semibold theme-text-primary mb-1">
               Dirección IP asignada <span class="text-rose-400">*</span>
             </label>
-            <input
-              id="editor_ip_address"
-              name="ip_address"
-              type="text"
-              required
-              data-validate-ip="true"
-              value="{{ form_data.get('ip_address', '') }}"
-              class="form-input-dark font-mono-code"
-            />
+            <div class="ip-segmented-wrapper">
+              <div
+                class="ip-segmented-container"
+                data-ip-segmented="true"
+                data-target-input="editor_ip_address"
+                tabindex="-1"
+              >
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="3"
+                  class="ip-octet-field"
+                  placeholder="192"
+                  data-octet-index="0"
+                  aria-label="Primer octeto IP"
+                  required
+                />
+                <span class="ip-dot-separator">.</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="3"
+                  class="ip-octet-field"
+                  placeholder="168"
+                  data-octet-index="1"
+                  aria-label="Segundo octeto IP"
+                  required
+                />
+                <span class="ip-dot-separator">.</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="3"
+                  class="ip-octet-field"
+                  placeholder="1"
+                  data-octet-index="2"
+                  aria-label="Tercer octeto IP"
+                  required
+                />
+                <span class="ip-dot-separator">.</span>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="3"
+                  class="ip-octet-field"
+                  placeholder="50"
+                  data-octet-index="3"
+                  aria-label="Cuarto octeto IP"
+                  required
+                />
+              </div>
+              <input
+                id="editor_ip_address"
+                name="ip_address"
+                type="hidden"
+                data-validate-ip="true"
+                value="{{ form_data.get('ip_address', '') }}"
+              />
+            </div>
             <div id="ip_feedback_box" class="text-[11px] mt-1 theme-text-muted">
               Subred privada RFC 1918 esperada: <code class="font-mono-code">{{ device.network_scope }}</code>
             </div>

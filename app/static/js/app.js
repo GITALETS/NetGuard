@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSubmitLoadingIndicator();
   initPasswordToggles();
   initDeviceDetailTabs();
+  initIpSegmentedInputs();
   initLiveNetworkValidators();
   initCategoryQuickAddModal();
 });
@@ -370,17 +371,189 @@ function initDeviceDetailTabs() {
 }
 
 /**
+ * Inicializa el control de entrada de direccion IP segmentada con puntos fijos.
+ * Garantiza que los tres puntos (.) permanezcan fijos e inmutables, permitiendo
+ * al usuario ingresar unicamente los numeros correspondientes a cada octeto (0-255).
+ * Soporta auto-avance por longitud, navegacion con flechas, retroceso inteligente y pegado.
+ */
+function initIpSegmentedInputs() {
+  const containers = document.querySelectorAll("[data-ip-segmented='true']");
+  if (!containers.length) return;
+
+  containers.forEach((container) => {
+    const targetHiddenId = container.getAttribute("data-target-input");
+    const hiddenInput = document.getElementById(targetHiddenId);
+    if (!hiddenInput) return;
+
+    const octetInputs = container.querySelectorAll(".ip-octet-field");
+    if (octetInputs.length !== 4) return;
+
+    // Sincroniza desde el valor inicial del input oculto o prefijo predeterminado
+    const populateFromHidden = () => {
+      const currentVal = (hiddenInput.value || "").trim();
+      if (currentVal) {
+        const parts = currentVal.split(".");
+        parts.forEach((part, idx) => {
+          if (idx < 4 && octetInputs[idx]) {
+            octetInputs[idx].value = part.replace(/\D/g, "").slice(0, 3);
+          }
+        });
+      } else {
+        const defaultPrefix = container.getAttribute("data-default-prefix");
+        if (defaultPrefix) {
+          const prefixParts = defaultPrefix.split(".").filter(Boolean);
+          prefixParts.forEach((part, idx) => {
+            if (idx < 3 && octetInputs[idx]) {
+              octetInputs[idx].value = part;
+            }
+          });
+        }
+      }
+    };
+
+    // Actualiza el valor del input oculto y dispara eventos de validacion reactiva
+    const updateHidden = () => {
+      const values = Array.from(octetInputs).map((inp) => inp.value.trim());
+      const hasAnyValue = values.some((v) => v !== "");
+      if (!hasAnyValue) {
+        hiddenInput.value = "";
+      } else {
+        hiddenInput.value = values.join(".");
+      }
+      hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
+      hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    populateFromHidden();
+    // Actualizar hidden si se precargo prefijo
+    if (!hiddenInput.value && Array.from(octetInputs).some((i) => i.value !== "")) {
+      updateHidden();
+    }
+
+    octetInputs.forEach((input, index) => {
+      // Filtrar estrictamente solo digitos
+      input.addEventListener("input", () => {
+        let val = input.value.replace(/\D/g, "");
+        if (val.length > 3) val = val.slice(0, 3);
+        if (val !== "" && Number(val) > 255) {
+          val = "255";
+        }
+        input.value = val;
+        updateHidden();
+
+        // Auto-avance: si el usuario escribio 3 digitos, saltar inmediatamente al siguiente octeto
+        if (val.length === 3 && index < 3) {
+          octetInputs[index + 1].focus();
+          octetInputs[index + 1].select();
+        }
+      });
+
+      // Manejo ergonomico de teclado
+      input.addEventListener("keydown", (e) => {
+        // Al teclear punto (.) o espacio, avanzar al siguiente octeto
+        if (e.key === "." || e.key === " " || e.key === "Decimal") {
+          e.preventDefault();
+          if (index < 3) {
+            octetInputs[index + 1].focus();
+            octetInputs[index + 1].select();
+          }
+          return;
+        }
+
+        // Al presionar retroceso (Backspace) en un octeto vacio, regresar al anterior
+        if (e.key === "Backspace" && input.value === "" && index > 0) {
+          e.preventDefault();
+          const prev = octetInputs[index - 1];
+          prev.focus();
+          const len = prev.value.length;
+          prev.setSelectionRange(len, len);
+          return;
+        }
+
+        // Flecha izquierda al inicio del octeto
+        if (e.key === "ArrowLeft" && input.selectionStart === 0 && index > 0) {
+          e.preventDefault();
+          const prev = octetInputs[index - 1];
+          prev.focus();
+          prev.setSelectionRange(prev.value.length, prev.value.length);
+          return;
+        }
+
+        // Flecha derecha al final del octeto
+        if (e.key === "ArrowRight" && input.selectionEnd === input.value.length && index < 3) {
+          e.preventDefault();
+          const next = octetInputs[index + 1];
+          next.focus();
+          next.setSelectionRange(0, 0);
+          return;
+        }
+      });
+
+      // Pegar direccion IP completa (ej. 192.168.1.50)
+      input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData("text") || "";
+        const parts = pastedText.trim().split(/[.\s]+/);
+        if (parts.length >= 2) {
+          parts.slice(0, 4).forEach((part, pIdx) => {
+            const targetIdx = index + pIdx;
+            if (targetIdx < 4) {
+              let num = part.replace(/\D/g, "").slice(0, 3);
+              if (num !== "" && Number(num) > 255) num = "255";
+              octetInputs[targetIdx].value = num;
+            }
+          });
+          updateHidden();
+          const lastIdx = Math.min(3, index + parts.length - 1);
+          octetInputs[lastIdx].focus();
+        } else if (parts.length === 1) {
+          let num = parts[0].replace(/\D/g, "").slice(0, 3);
+          if (num !== "" && Number(num) > 255) num = "255";
+          input.value = num;
+          updateHidden();
+          if (num.length === 3 && index < 3) {
+            octetInputs[index + 1].focus();
+            octetInputs[index + 1].select();
+          }
+        }
+      });
+
+      // Seleccionar texto completo al recibir foco para agilizar la edicion
+      input.addEventListener("focus", () => {
+        input.select();
+      });
+    });
+
+    // Clic en el contenedor fuera de los inputs enfoca el primer octeto vacio o el ultimo
+    container.addEventListener("click", (e) => {
+      if (e.target === container || e.target.classList.contains("ip-dot-separator")) {
+        const firstEmpty = Array.from(octetInputs).find((inp) => inp.value === "") || octetInputs[3];
+        firstEmpty.focus();
+      }
+    });
+  });
+}
+
+/**
  * Validaciones reactivas en Front-End para Direcciones IP RFC 1918 y Direcciones MAC.
  */
 function initLiveNetworkValidators() {
   // Validación reactiva de IP
   const ipInputs = document.querySelectorAll('[data-validate-ip="true"], #ip_address, #editor_ip_address');
   ipInputs.forEach((input) => {
-    const feedbackBox = document.getElementById("ip_feedback_box");
+    // Detectar si el input esta asociado a un contenedor segmentado con puntos fijos
+    const container = document.querySelector(`[data-target-input="${input.id}"]`);
+    const visualElement = container || input;
+
+    // Buscar caja de retroalimentacion contextual
+    const feedbackBox = input.closest(".ip-segmented-wrapper")?.parentElement?.querySelector("#ip_feedback_box") ||
+                        input.parentElement?.querySelector("#ip_feedback_box") ||
+                        document.getElementById("ip_feedback_box");
+
     input.addEventListener("input", () => {
       const val = input.value.trim();
       if (!val) {
-        input.classList.remove("border-emerald-500", "border-rose-500", "border-amber-500");
+        visualElement.classList.remove("border-emerald-500", "border-rose-500", "border-amber-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 theme-text-muted";
           feedbackBox.textContent = "Ingrese la dirección IP privada del dispositivo (ej. 192.168.1.50).";
@@ -392,33 +565,33 @@ function initLiveNetworkValidators() {
       const isValidShape = parts.length === 4 && parts.every((p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255);
 
       if (!isValidShape) {
-        input.classList.add("border-rose-500");
-        input.classList.remove("border-emerald-500", "border-amber-500");
+        visualElement.classList.add("border-rose-500");
+        visualElement.classList.remove("border-emerald-500", "border-amber-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-medium";
-          feedbackBox.textContent = "Formato IP incompleto o inválido. Deben ser 4 números entre 0 y 255 separados por punto.";
+          feedbackBox.textContent = "Formato IP incompleto. Deben completarse los 4 números (0-255).";
         }
         return;
       }
 
       const lastOctet = Number(parts[3]);
       if (lastOctet === 1) {
-        input.classList.add("border-amber-500");
-        input.classList.remove("border-emerald-500", "border-rose-500");
+        visualElement.classList.add("border-amber-500");
+        visualElement.classList.remove("border-emerald-500", "border-rose-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 text-amber-400 font-semibold";
           feedbackBox.textContent = "Atención: La dirección terminada en .1 suele ser el Router doméstico y no debe asignarse a un dispositivo.";
         }
       } else if (lastOctet === 0 || lastOctet === 255) {
-        input.classList.add("border-rose-500");
-        input.classList.remove("border-emerald-500", "border-amber-500");
+        visualElement.classList.add("border-rose-500");
+        visualElement.classList.remove("border-emerald-500", "border-amber-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-semibold";
           feedbackBox.textContent = "Dirección no asignable: .0 es la dirección de red y .255 es la dirección de broadcast.";
         }
       } else {
-        input.classList.add("border-emerald-500");
-        input.classList.remove("border-rose-500", "border-amber-500");
+        visualElement.classList.add("border-emerald-500");
+        visualElement.classList.remove("border-rose-500", "border-amber-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 text-emerald-400 font-medium";
           feedbackBox.textContent = "Dirección IP válida y conforme a los rangos privados RFC 1918.";

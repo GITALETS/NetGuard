@@ -364,3 +364,85 @@ html[data-theme="light"] .text-indigo-300\/90,
 html[data-theme="light"] .text-indigo-100 {
   color: #3730a3 !important;
 }
+
+/* ==========================================================================
+   Componente de Entrada Segmentada de Direccion IP con Puntos Fijos
+   ========================================================================== */
+
+.ip-segmented-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.ip-segmented-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 26rem;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-primary);
+  border-radius: 0.625rem;
+  padding: 0.45rem 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.ip-segmented-container:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.ip-segmented-container.border-emerald-500 {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+}
+
+.ip-segmented-container.border-rose-500 {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.2) !important;
+}
+
+.ip-segmented-container.border-amber-500 {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2) !important;
+}
+
+.ip-octet-field {
+  width: 3.5rem;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.15rem 0;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.ip-octet-field::-webkit-outer-spin-button,
+.ip-octet-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ip-octet-field::placeholder {
+  color: var(--text-muted);
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+.ip-dot-separator {
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  font-weight: 800;
+  padding: 0 0.35rem;
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+}
+
