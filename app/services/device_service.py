@@ -62,7 +62,9 @@ def create_device(
 
     admin_status = (data.get("admin_status") or "pending").strip()
     if admin_status not in Device.VALID_ADMIN_STATUSES:
-        raise ValidationError(f"Estado administrativo no válido: '{admin_status}'.")
+        from app.models.category import SystemCategory
+        if not SystemCategory.query.filter_by(category_type="admin_status", code=admin_status).first():
+            raise ValidationError(f"Estado administrativo no válido: '{admin_status}'.")
 
     ip_assignment_type = (data.get("ip_assignment_type") or "dhcp_reservation").strip()
     if ip_assignment_type not in Device.VALID_IP_ASSIGNMENTS:
@@ -184,7 +186,9 @@ def update_device(
 
     admin_status = (data.get("admin_status") or device.admin_status).strip()
     if admin_status not in Device.VALID_ADMIN_STATUSES:
-        raise ValidationError(f"Estado administrativo no válido: '{admin_status}'.")
+        from app.models.category import SystemCategory
+        if not SystemCategory.query.filter_by(category_type="admin_status", code=admin_status).first():
+            raise ValidationError(f"Estado administrativo no válido: '{admin_status}'.")
 
     ip_assignment_type = (data.get("ip_assignment_type") or device.ip_assignment_type).strip()
     if ip_assignment_type not in Device.VALID_IP_ASSIGNMENTS:

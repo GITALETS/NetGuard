@@ -22,11 +22,12 @@ class SystemCategory(db.Model):
         db.UniqueConstraint("category_type", "code", name="uq_cat_type_code"),
     )
 
-    VALID_CATEGORY_TYPES = ("device_type", "device_profile", "policy_target")
+    VALID_CATEGORY_TYPES = ("device_type", "device_profile", "policy_target", "admin_status")
     CATEGORY_TYPE_LABELS = {
         "device_type": "Tipo de Dispositivo",
         "device_profile": "Perfil Familiar de Red",
         "policy_target": "Categoría de Navegación / Destino",
+        "admin_status": "Permiso / Estado de Acceso",
     }
 
     id = db.Column(db.Integer, primary_key=True)

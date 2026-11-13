@@ -177,13 +177,26 @@
       </div>
 
       <div>
-        <label for="admin_status" class="block text-sm font-semibold theme-text-primary mb-1">
-          ¿Qué permiso tiene en casa?
-        </label>
+        <div class="flex items-center justify-between mb-1">
+          <label for="admin_status" class="block text-sm font-semibold theme-text-primary">
+            ¿Qué permiso tiene en casa?
+          </label>
+          {% if current_user.can_manage_categories %}
+            <button type="button" data-open-category-modal="admin_status" class="text-xs text-blue-400 hover:underline font-medium">
+              + Nuevo Permiso
+            </button>
+          {% endif %}
+        </div>
         <select id="admin_status" name="admin_status" class="form-select-dark">
-          {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
-            <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
+          {% if admin_statuses %}
+            {% for key, label in admin_statuses.items() %}
+              <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          {% else %}
+            {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
+              <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          {% endif %}
         </select>
       </div>
     </div>

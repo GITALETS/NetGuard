@@ -145,7 +145,11 @@ class Device(db.Model):
 
     @property
     def admin_status_label(self) -> str:
-        return self.ADMIN_STATUS_LABELS.get(self.admin_status, self.admin_status)
+        if self.admin_status in self.ADMIN_STATUS_LABELS:
+            return self.ADMIN_STATUS_LABELS[self.admin_status]
+        from app.models.category import SystemCategory
+        cat = SystemCategory.query.filter_by(category_type="admin_status", code=self.admin_status).first()
+        return cat.name if cat else self.admin_status
 
     @property
     def ip_assignment_label(self) -> str:

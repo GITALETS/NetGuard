@@ -152,6 +152,14 @@ def seed_default_system_categories() -> int:
         ("general_browsing", "Navegación General", "Tráfico web habitual sin categoría específica"),
     ]
 
+    # 4. Estados y Permisos Administrativos de Acceso
+    default_admin_statuses = [
+        ("authorized", "Autorizado", "Dispositivo plenamente permitido para navegar"),
+        ("restricted", "Restringido (Con Políticas)", "Dispositivo sujeto a reglas o descansos programados"),
+        ("blocked", "Bloqueado / No Autorizado", "Dispositivo sin acceso a la red"),
+        ("pending", "Pendiente de Revisión", "Dispositivo recién conectado en espera de verificación"),
+    ]
+
     created = 0
 
     for code, name, desc in default_device_types:
@@ -185,6 +193,19 @@ def seed_default_system_categories() -> int:
             db.session.add(
                 SystemCategory(
                     category_type="policy_target",
+                    code=code,
+                    name=name,
+                    description=desc,
+                    is_system_default=True,
+                )
+            )
+            created += 1
+
+    for code, name, desc in default_admin_statuses:
+        if not SystemCategory.query.filter_by(category_type="admin_status", code=code).first():
+            db.session.add(
+                SystemCategory(
+                    category_type="admin_status",
                     code=code,
                     name=name,
                     description=desc,

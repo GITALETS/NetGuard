@@ -6,7 +6,7 @@
 {% block page_subtitle %}Programa a qué horas pueden usar el Wi-Fi los aparatos de casa (estudio, tarde o descanso nocturno){% endblock %}
 
 {% block header_actions %}
-  {% if current_user.can_modify %}
+  {% if current_user.is_admin %}
     <a href="{{ url_for('schedules.create') }}" class="btn-primary">
       + Nuevo Horario Familiar
     </a>
@@ -174,7 +174,7 @@
 
               <td class="text-right whitespace-nowrap">
                 <div class="inline-flex items-center gap-2">
-                  {% if current_user.can_modify %}
+                  {% if current_user.is_admin %}
                     <form method="POST" action="{{ url_for('schedules.toggle', schedule_id=sch.id) }}" class="inline">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                       <button type="submit" class="btn-secondary">

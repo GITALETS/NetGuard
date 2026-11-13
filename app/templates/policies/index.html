@@ -6,7 +6,7 @@
 {% block page_subtitle %}Administra quién tiene permiso de usar el internet, por cuánto tiempo y con qué filtros{% endblock %}
 
 {% block header_actions %}
-  {% if current_user.can_modify %}
+  {% if current_user.is_admin %}
     <a href="{{ url_for('policies.create') }}" class="btn-primary">
       + Crear Permiso o Regla
     </a>
@@ -114,7 +114,7 @@
                   <a href="{{ url_for('policies.detail', policy_id=pol.id) }}" class="btn-secondary">
                     Ver
                   </a>
-                  {% if current_user.can_modify %}
+                  {% if current_user.is_admin %}
                     <a href="{{ url_for('policies.edit', policy_id=pol.id) }}" class="btn-secondary">
                       Editar
                     </a>

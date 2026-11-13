@@ -9,7 +9,7 @@ from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.router_event import RouterSyncLog
 from app.models.user import utc_now_naive
-from app.routes.decorators import write_permission_required
+from app.routes.decorators import admin_required, write_permission_required
 from app.services.policy_service import (
     create_policy,
     delete_policy,
@@ -63,7 +63,7 @@ def index():
 
 @policies_bp.route("/new", methods=["GET", "POST"])
 @login_required
-@write_permission_required
+@admin_required
 def create():
     devices = Device.query.order_by(Device.name.asc()).all()
     if not devices:
@@ -153,7 +153,7 @@ def detail(policy_id: int):
 
 @policies_bp.route("/<int:policy_id>/edit", methods=["GET", "POST"])
 @login_required
-@write_permission_required
+@admin_required
 def edit(policy_id: int):
     policy = db.get_or_404(AccessPolicy, policy_id)
     devices = Device.query.order_by(Device.name.asc()).all()
@@ -215,7 +215,7 @@ def edit(policy_id: int):
 
 @policies_bp.route("/<int:policy_id>/sync", methods=["POST"])
 @login_required
-@write_permission_required
+@admin_required
 def sync_router(policy_id: int):
     policy = db.get_or_404(AccessPolicy, policy_id)
     res = execute_policy_router_sync(policy, triggered_by_id=current_user.id)
@@ -225,7 +225,7 @@ def sync_router(policy_id: int):
 
 @policies_bp.route("/<int:policy_id>/delete", methods=["POST"])
 @login_required
-@write_permission_required
+@admin_required
 def delete(policy_id: int):
     policy = db.get_or_404(AccessPolicy, policy_id)
     name = policy.name

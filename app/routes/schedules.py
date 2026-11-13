@@ -9,7 +9,7 @@ from app.extensions import db
 from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.schedule import AccessSchedule
-from app.routes.decorators import write_permission_required
+from app.routes.decorators import admin_required, write_permission_required
 from app.services.policy_service import parse_datetime_input
 from app.services.schedule_service import (
     create_schedule,
@@ -63,7 +63,7 @@ def index():
 
 @schedules_bp.route("/new", methods=["GET", "POST"])
 @login_required
-@write_permission_required
+@admin_required
 def create():
     devices = Device.query.order_by(Device.name.asc()).all()
     if not devices:
@@ -136,7 +136,7 @@ def create():
 
 @schedules_bp.route("/<int:schedule_id>/edit", methods=["GET", "POST"])
 @login_required
-@write_permission_required
+@admin_required
 def edit(schedule_id: int):
     schedule = db.get_or_404(AccessSchedule, schedule_id)
     devices = Device.query.order_by(Device.name.asc()).all()
@@ -197,7 +197,7 @@ def edit(schedule_id: int):
 
 @schedules_bp.route("/<int:schedule_id>/toggle", methods=["POST"])
 @login_required
-@write_permission_required
+@admin_required
 def toggle(schedule_id: int):
     schedule = db.get_or_404(AccessSchedule, schedule_id)
     try:
@@ -211,7 +211,7 @@ def toggle(schedule_id: int):
 
 @schedules_bp.route("/<int:schedule_id>/delete", methods=["POST"])
 @login_required
-@write_permission_required
+@admin_required
 def delete(schedule_id: int):
     schedule = db.get_or_404(AccessSchedule, schedule_id)
     label = schedule.label

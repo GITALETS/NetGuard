@@ -14,7 +14,7 @@
   <a href="{{ url_for('policies.index') }}" class="btn-secondary">
     &larr; Volver a Permisos
   </a>
-  {% if current_user.can_modify %}
+  {% if current_user.is_admin %}
     <a href="{{ url_for('policies.edit', policy_id=policy.id) }}" class="btn-primary">
       Editar Regla
     </a>

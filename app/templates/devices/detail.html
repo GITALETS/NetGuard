@@ -38,7 +38,7 @@
     >
       Ficha Técnica y Permisos
     </button>
-    {% if current_user.can_modify %}
+    {% if current_user.is_admin %}
       <button
         type="button"
         data-tab-target="tab-editor"
@@ -46,6 +46,8 @@
       >
         Editar Parámetros de Red
       </button>
+    {% endif %}
+    {% if current_user.can_modify %}
       <button
         type="button"
         data-tab-target="tab-family"
@@ -242,8 +244,8 @@
 
   </div>
 
-  <!-- PESTAÑA 2: EDITOR INTEGRADO EN VER FICHA -->
-  {% if current_user.can_modify %}
+  <!-- PESTAÑA 2: EDITOR INTEGRADO EN VER FICHA (ADMINISTRADORES Y SUPERADMINISTRADORES) -->
+  {% if current_user.is_admin %}
   <div id="tab-editor" class="tab-content {% if active_tab != 'editor' %}hidden{% endif %}">
     <div class="surface-card p-6 sm:p-8 space-y-6">
       <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
@@ -447,13 +449,26 @@
           </div>
 
           <div>
-            <label for="editor_admin_status" class="block text-sm font-semibold theme-text-primary mb-1">
-              Estado Administrativo
-            </label>
+            <div class="flex items-center justify-between mb-1">
+              <label for="editor_admin_status" class="block text-sm font-semibold theme-text-primary">
+                Estado Administrativo
+              </label>
+              {% if current_user.can_manage_categories %}
+                <button type="button" data-open-category-modal="admin_status" class="text-xs text-blue-400 hover:underline font-medium">
+                  + Nuevo Permiso
+                </button>
+              {% endif %}
+            </div>
             <select id="editor_admin_status" name="admin_status" class="form-select-dark">
-              {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
-                <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
+              {% if admin_statuses %}
+                {% for key, label in admin_statuses.items() %}
+                  <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% else %}
+                {% for key, label in device_Model.ADMIN_STATUS_LABELS.items() %}
+                  <option value="{{ key }}" {% if form_data.get('admin_status') == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              {% endif %}
             </select>
           </div>
 
@@ -503,6 +518,7 @@
       </form>
     </div>
   </div>
+  {% endif %}
 
   <!-- PESTAÑA 3: CONTROL FAMILIAR AMIGABLE (ROL OPERADOR Y PADRES DE FAMILIA) -->
   <div id="tab-family" class="tab-content {% if active_tab != 'family' %}hidden{% endif %} space-y-5">
@@ -604,7 +620,6 @@
       </div>
     </div>
   </div>
-  {% endif %}
 
 </div>
 

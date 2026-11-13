@@ -72,6 +72,7 @@ def create():
     default_scope = current_app.config.get("DEFAULT_NETWORK_SCOPE", "192.168.1.0/24")
     device_types = get_category_options("device_type")
     device_profiles = get_category_options("device_profile")
+    admin_statuses = get_category_options("admin_status")
 
     form_data = {
         "network_scope": default_scope,
@@ -109,6 +110,7 @@ def create():
                     form_data=form_data,
                     device_types=device_types,
                     device_profiles=device_profiles,
+                    admin_statuses=admin_statuses,
                     device_Model=Device,
                 ),
                 400,
@@ -120,6 +122,7 @@ def create():
         form_data=form_data,
         device_types=device_types,
         device_profiles=device_profiles,
+        admin_statuses=admin_statuses,
         device_Model=Device,
     )
 
@@ -135,7 +138,8 @@ def detail(device_id: int):
     device = db.get_or_404(Device, device_id)
     device_types = get_category_options("device_type")
     device_profiles = get_category_options("device_profile")
-    active_tab = request.args.get("tab", "ficha")
+    admin_statuses = get_category_options("admin_status")
+    active_tab = request.args.get("tab", "family" if current_user.is_operator else "ficha")
 
     form_data = {
         "name": device.name,
@@ -153,9 +157,9 @@ def detail(device_id: int):
 
     # Procesar edición integrada en la ficha técnica
     if request.method == "POST":
-        if not current_user.can_modify:
-            flash("Su cuenta no cuenta con permisos para modificar registros.", "warning")
-            return redirect(url_for("devices.detail", device_id=device.id))
+        if not current_user.is_admin:
+            flash("Solo los Administradores de Red y Superadministradores pueden modificar parámetros técnicos.", "warning")
+            return redirect(url_for("devices.detail", device_id=device.id, tab="family" if current_user.is_operator else "ficha"))
 
         form_data = request.form.to_dict()
         sync_now = request.form.get("sync_with_adapter") == "1"
@@ -195,6 +199,7 @@ def detail(device_id: int):
         active_tab=active_tab,
         device_types=device_types,
         device_profiles=device_profiles,
+        admin_statuses=admin_statuses,
         audit_history=audit_history,
         sync_logs=sync_logs,
         adapter_info=adapter_info,

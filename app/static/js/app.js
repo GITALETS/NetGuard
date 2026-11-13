@@ -683,6 +683,8 @@ function initCategoryQuickAddModal() {
           titleEl.textContent = "Nueva Categoría de Dispositivo";
         } else if (catType === "device_profile") {
           titleEl.textContent = "Nuevo Perfil Familiar de Red";
+        } else if (catType === "admin_status") {
+          titleEl.textContent = "Nuevo Permiso / Estado de Acceso";
         } else {
           titleEl.textContent = "Nueva Categoría del Sistema";
         }
@@ -738,10 +740,14 @@ function initCategoryQuickAddModal() {
       const created = result.category;
 
       // Inyectar la nueva opción en los selectores correspondientes
-      const targetSelectIds =
-        catType === "device_type"
-          ? ["device_type", "editor_device_type"]
-          : ["profile", "editor_profile"];
+      let targetSelectIds = [];
+      if (catType === "device_type") {
+        targetSelectIds = ["device_type", "editor_device_type"];
+      } else if (catType === "device_profile") {
+        targetSelectIds = ["profile", "editor_profile"];
+      } else if (catType === "admin_status") {
+        targetSelectIds = ["admin_status", "editor_admin_status"];
+      }
 
       targetSelectIds.forEach((id) => {
         const selectEl = document.getElementById(id);
