@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Estado de Conexión en Vivo{% endblock %}
+{% block page_header %}Mi Estado de Acceso en Vivo{% endblock %}
+{% block page_subtitle %}Consulta en tiempo real qué permiso u horario está aplicando NetGuard a esta dirección IP{% endblock %}
+
+{% block header_actions %}
+  <a href="{{ url_for('network.monitor') }}" class="btn-secondary">
+    &larr; Monitor de Red
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+  {% include "network/_client_status_inner.html" %}
+</div>
+{% endblock %}
+
+{% block public_content %}
+<div class="max-w-lg w-full mx-auto px-3 py-6 space-y-4">
+  <div class="flex items-center justify-between">
+    <div class="font-bold text-sm theme-text-primary">{{ PROJECT_SHORT_NAME }} &bull; Verificador Móvil</div>
+    <button id="theme-toggle-btn" type="button" class="btn-secondary text-xs py-1 px-2.5">
+      <svg id="theme-icon-moon" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+      </svg>
+      <svg id="theme-icon-sun" class="w-4 h-4 shrink-0 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+      </svg>
+      <span id="theme-toggle-label">Modo Oscuro</span>
+    </button>
+  </div>
+
+  {% include "network/_client_status_inner.html" %}
+
+  <div class="text-center">
+    <a href="{{ url_for('auth.login') }}" class="text-xs text-blue-400 hover:underline">
+      Iniciar sesión como Administrador u Operador
+    </a>
+  </div>
+</div>
+{% endblock %}

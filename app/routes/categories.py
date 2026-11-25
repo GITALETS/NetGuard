@@ -7,7 +7,7 @@ de dispositivos, perfiles de red y destinos de filtrado.
 from flask import Blueprint, flash, jsonify, redirect, request, url_for
 from flask_login import current_user, login_required
 from app.routes.decorators import admin_required
-from app.services.category_service import create_custom_category, get_categories_by_type
+from app.services.category_service import create_custom_category
 from app.services.validators import ValidationError
 
 categories_bp = Blueprint("categories", __name__, url_prefix="/categories")

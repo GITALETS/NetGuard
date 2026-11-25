@@ -11,6 +11,7 @@ from app.models.router_event import RouterSyncLog
 from app.routes.decorators import write_permission_required
 from app.services.category_service import get_category_options
 from app.services.device_service import create_device, delete_device, update_device
+from app.services.network_probe_service import detect_local_network_info
 from app.services.router_adapter import execute_device_router_sync, get_router_adapter
 from app.services.validators import ValidationError
 
@@ -69,15 +70,41 @@ def index():
 @login_required
 @write_permission_required
 def create():
-    default_scope = current_app.config.get("DEFAULT_NETWORK_SCOPE", "192.168.1.0/24")
+    configured_scope = current_app.config.get("DEFAULT_NETWORK_SCOPE", "192.168.1.0/24")
+    prefill_ip = (request.args.get("ip") or "").strip()
+    prefill_mac = (request.args.get("mac") or "").strip()
+    prefill_hostname = (request.args.get("hostname") or "").strip()
+    prefill_name = (request.args.get("name") or "").strip()
+    prefill_type = (request.args.get("device_type") or "").strip()
+    prefill_scope = (request.args.get("scope") or "").strip()
+
+    # Detectar subred Wi-Fi activa en GET cuando no hay una subred explícita y no estamos usando datos fijos
+    active_net = detect_local_network_info() if request.method == "GET" else None
+    if prefill_scope:
+        default_scope = prefill_scope
+    elif active_net and active_net.get("is_lan_reachable"):
+        default_scope = active_net["network_scope"]
+    else:
+        default_scope = configured_scope
+
+    prefix_source = prefill_ip or (active_net.get("local_ip") if active_net and active_net.get("is_lan_reachable") else "")
+    if prefix_source and "." in prefix_source:
+        default_ip_prefix = ".".join(prefix_source.split(".")[:3]) + "."
+    else:
+        default_ip_prefix = ".".join(default_scope.split("/")[0].split(".")[:3]) + "."
+
     device_types = get_category_options("device_type")
     device_profiles = get_category_options("device_profile")
     admin_statuses = get_category_options("admin_status")
 
     form_data = {
+        "name": prefill_name,
+        "ip_address": prefill_ip,
+        "mac_address": prefill_mac,
+        "hostname": prefill_hostname,
         "network_scope": default_scope,
         "ip_assignment_type": "dhcp_reservation",
-        "device_type": "workstation",
+        "device_type": prefill_type if prefill_type in Device.VALID_TYPES else "smartphone" if prefill_ip else "workstation",
         "profile": "family",
         "admin_status": "authorized",
     }
@@ -112,6 +139,7 @@ def create():
                     device_profiles=device_profiles,
                     admin_statuses=admin_statuses,
                     device_Model=Device,
+                    default_ip_prefix=default_ip_prefix,
                 ),
                 400,
             )
@@ -124,6 +152,7 @@ def create():
         device_profiles=device_profiles,
         admin_statuses=admin_statuses,
         device_Model=Device,
+        default_ip_prefix=default_ip_prefix,
     )
 
 

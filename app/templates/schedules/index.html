@@ -76,7 +76,7 @@
               {% endif %}
             </div>
             <div class="font-bold text-sm theme-text-primary truncate">{{ win.schedule.label }}</div>
-            <div class="text-xs theme-text-secondary truncate">Aparato: <strong>{{ win.device.name }}</strong></div>
+            <div class="text-xs theme-text-secondary truncate">Aparato: <strong>{{ win.device.name if win.device else 'Todos los dispositivos (Toda la casa)' }}</strong></div>
             <div class="pt-2 border-t border-slate-800/80 text-xs theme-text-secondary">
               <div>De: <strong>{{ win.window_start.strftime('%d/%m %H:%M') }}</strong></div>
               <div>A: &nbsp;<strong>{{ win.window_end.strftime('%d/%m %H:%M') }}</strong></div>
@@ -91,19 +91,86 @@
     {% endif %}
   </div>
 
-  <!-- Tabla de horarios programados -->
+  <!-- Tabla / Tarjetas de horarios programados -->
   <div class="surface-card overflow-hidden">
     {% if schedules %}
-      <div class="overflow-x-auto">
+      <!-- Vista de Tarjetas para Teléfono (< 768px) -->
+      <div class="block md:hidden p-3 space-y-3">
+        {% for sch in schedules %}
+          {% set active_now = sch.is_in_window_at(eval_dt) %}
+          <div class="surface-subtle p-4 space-y-3 border border-slate-800/80">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-sm theme-text-primary">{{ sch.label }}</span>
+                  {{ demo_badge(sch.is_demo) }}
+                </div>
+                <div class="text-xs theme-text-secondary mt-0.5">
+                  {% if sch.device %}
+                    {{ sch.device.name }} (<span class="font-mono-code">{{ sch.device.ip_address }}</span>)
+                  {% else %}
+                    <span class="text-cyan-400 font-semibold">Todos los dispositivos (Toda la casa)</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="shrink-0">
+                {% if not sch.is_active %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 theme-text-muted">En pausa</span>
+                {% elif active_now %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">Activo</span>
+                {% else %}
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800 theme-text-secondary">En espera</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="text-xs theme-text-secondary flex flex-wrap items-center justify-between gap-2">
+              <span><strong>{{ sch.start_time }} a {{ sch.end_time }}</strong> ({{ sch.days_human_label }})</span>
+              <span class="{% if sch.window_behavior == 'allowed_window' %}text-emerald-400{% else %}text-amber-400{% endif %} font-medium">
+                {% if sch.window_behavior == 'allowed_window' %}Permitir uso{% else %}Pausar internet{% endif %}
+              </span>
+            </div>
+
+            {% if current_user.is_admin %}
+              <div class="pt-2 border-t border-slate-800/70 flex flex-wrap items-center gap-2">
+                <form method="POST" action="{{ url_for('schedules.toggle', schedule_id=sch.id) }}" class="flex-1">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn-secondary w-full text-xs py-1.5">
+                    {% if sch.is_active %}Pausar{% else %}Activar{% endif %}
+                  </button>
+                </form>
+                <a href="{{ url_for('schedules.edit', schedule_id=sch.id) }}" class="btn-secondary text-xs py-1.5 px-3">
+                  Editar
+                </a>
+                <form
+                  method="POST"
+                  action="{{ url_for('schedules.delete', schedule_id=sch.id) }}"
+                  data-confirm-title="Eliminar horario"
+                  data-confirm-message="¿Deseas eliminar el horario '{{ sch.label }}'?"
+                  class="inline"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60 min-h-[40px]">
+                    Quitar
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Tabla de Escritorio (>= 768px) -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Nombre del Horario</th>
-              <th>Aparato Familiar</th>
-              <th>Días de la Semana</th>
-              <th>Horas</th>
-              <th>Estado</th>
-              <th class="text-right">Opciones</th>
+              <th class="col-main">Nombre del Horario</th>
+              <th class="col-compact">Aparato Familiar</th>
+              <th class="col-compact">Días de la Semana</th>
+              <th class="col-compact">Horas</th>
+              <th class="col-compact">Estado</th>
+              <th class="col-actions">Opciones</th>
             </tr>
           </thead>
           <tbody>
@@ -127,10 +194,17 @@
               </td>
 
               <td class="whitespace-nowrap">
-                <a href="{{ url_for('devices.detail', device_id=sch.device.id) }}" class="font-semibold text-sm theme-text-primary hover:underline block">
-                  {{ sch.device.name }}
-                </a>
-                <span class="text-xs font-mono-code theme-text-muted">{{ sch.device.ip_address }}</span>
+                {% if sch.device %}
+                  <a href="{{ url_for('devices.detail', device_id=sch.device.id) }}" class="font-semibold text-sm theme-text-primary hover:underline block">
+                    {{ sch.device.name }}
+                  </a>
+                  <span class="text-xs font-mono-code theme-text-muted">{{ sch.device.ip_address }}</span>
+                {% else %}
+                  <span class="font-semibold text-sm text-cyan-400 block">
+                    Todos los dispositivos (Toda la casa)
+                  </span>
+                  <span class="text-xs theme-text-muted">Aplica a todos los equipos no bloqueados</span>
+                {% endif %}
               </td>
 
               <td>
@@ -172,30 +246,53 @@
                 {% endif %}
               </td>
 
-              <td class="text-right whitespace-nowrap">
-                <div class="inline-flex items-center gap-2">
+              <td class="col-actions">
+                <div class="inline-flex items-center justify-end gap-1.5 relative action-dropdown-container">
                   {% if current_user.is_admin %}
                     <form method="POST" action="{{ url_for('schedules.toggle', schedule_id=sch.id) }}" class="inline">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                      <button type="submit" class="btn-secondary">
+                      <button type="submit" class="btn-secondary text-xs py-1 px-2.5">
                         {% if sch.is_active %}Pausar{% else %}Activar{% endif %}
                       </button>
                     </form>
-                    <a href="{{ url_for('schedules.edit', schedule_id=sch.id) }}" class="btn-secondary">
-                      Editar
-                    </a>
-                    <form
-                      method="POST"
-                      action="{{ url_for('schedules.delete', schedule_id=sch.id) }}"
-                      data-confirm-title="Eliminar horario"
-                      data-confirm-message="¿Deseas eliminar el horario '{{ sch.label }}'?"
-                      class="inline"
+                    <button
+                      type="button"
+                      class="action-dropdown-btn btn-secondary text-xs py-1 px-2 inline-flex items-center gap-1"
+                      title="Menú de opciones"
+                      aria-haspopup="true"
+                      aria-expanded="false"
                     >
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                      <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60">
-                        Quitar
-                      </button>
-                    </form>
+                      <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                      </svg>
+                      <svg class="w-2.5 h-2.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    <div class="action-dropdown-menu hidden fixed rounded-xl shadow-2xl py-1.5 z-50 border text-left min-w-[170px]">
+                      <a href="{{ url_for('schedules.edit', schedule_id=sch.id) }}" class="action-dropdown-item">
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span>Editar horario</span>
+                      </a>
+                      <div class="my-1 border-t border-slate-800"></div>
+                      <form
+                        method="POST"
+                        action="{{ url_for('schedules.delete', schedule_id=sch.id) }}"
+                        data-confirm-title="Eliminar horario"
+                        data-confirm-message="¿Deseas eliminar el horario '{{ sch.label }}'?"
+                        class="block m-0"
+                      >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit" class="action-dropdown-item item-danger">
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          <span>Quitar horario</span>
+                        </button>
+                      </form>
+                    </div>
+                  {% else %}
+                    <span class="text-xs theme-text-muted">Solo lectura</span>
                   {% endif %}
                 </div>
               </td>
@@ -210,7 +307,7 @@
         <p class="text-xs theme-text-secondary max-w-md mx-auto">
           Programa horarios de estudio o de descanso nocturno para los aparatos de la familia.
         </p>
-        {% if current_user.can_modify %}
+        {% if current_user.is_admin %}
           <div class="pt-2">
             <a href="{{ url_for('schedules.create') }}" class="btn-primary">
               + Nuevo Horario Familiar

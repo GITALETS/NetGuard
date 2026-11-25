@@ -59,10 +59,28 @@
     </div>
   </form>
 
-  <!-- Tabla limpia de actividad -->
+  <!-- Tabla / Tarjetas limpias de actividad -->
   <div class="surface-card overflow-hidden">
     {% if logs %}
-      <div class="overflow-x-auto">
+      <!-- Vista Móvil (< 768px) -->
+      <div class="block md:hidden p-3 space-y-2.5">
+        {% for log in logs %}
+          <div class="surface-subtle p-3.5 space-y-2 border border-slate-800/80">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold theme-text-primary">{{ log.module_label }}</span>
+                {{ audit_severity_badge(log.severity, log.severity_label) }}
+              </div>
+              <span class="text-[11px] font-mono-code theme-text-muted">{{ log.created_at.strftime('%d/%m %H:%M') if log.created_at else '' }}</span>
+            </div>
+            <div class="text-xs theme-text-primary leading-relaxed">{{ log.description }}</div>
+            <div class="text-[11px] theme-text-secondary">Por: <strong>{{ log.username_snapshot or 'Sistema' }}</strong></div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Vista Escritorio (>= 768px) -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="data-table">
           <thead>
             <tr>

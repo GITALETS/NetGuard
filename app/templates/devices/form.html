@@ -115,7 +115,7 @@
             class="ip-segmented-container"
             data-ip-segmented="true"
             data-target-input="ip_address"
-            data-default-prefix="192.168.1."
+            data-default-prefix="{{ default_ip_prefix or '192.168.1.' }}"
             tabindex="-1"
           >
             <input
@@ -172,7 +172,7 @@
           />
         </div>
         <div id="ip_feedback_box" class="text-[11px] mt-1 theme-text-muted">
-          Subred privada esperada: <code class="font-mono-code">192.168.1.0/24</code>
+          Subred activa detectada: <code class="font-mono-code" id="ip_expected_scope_label">{{ form_data.get('network_scope', '192.168.1.0/24') }}</code>
         </div>
       </div>
 
@@ -253,6 +253,7 @@
             name="network_scope"
             type="text"
             required
+            data-auto-scope="{{ 'false' if device else 'true' }}"
             value="{{ form_data.get('network_scope', '192.168.1.0/24') }}"
             class="form-input-dark font-mono-code"
           />

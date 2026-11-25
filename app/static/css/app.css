@@ -217,7 +217,7 @@ a.px-4 {
   border-color: var(--accent-primary);
 }
 
-/* Tablas amplias, limpias y fáciles de escanear */
+/* Tablas equilibradas, compactas y fáciles de escanear sin elementos dispersos */
 .data-table {
   width: 100%;
   border-collapse: separate;
@@ -231,16 +231,16 @@ a.px-4 {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 0.875rem 1.15rem;
+  padding: 0.75rem 0.95rem;
   border-bottom: 1px solid var(--border-subtle);
   text-align: left;
   white-space: nowrap;
 }
 
 .data-table td {
-  padding: 1rem 1.15rem;
+  padding: 0.75rem 0.95rem;
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   color: var(--text-primary);
   vertical-align: middle;
 }
@@ -251,6 +251,94 @@ a.px-4 {
 
 .data-table tbody tr:hover {
   background-color: var(--table-row-hover);
+}
+
+/* Clases de ajuste de columnas para evitar vacíos excesivos y alejamientos */
+.data-table th.col-compact,
+.data-table td.col-compact {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.data-table th.col-actions,
+.data-table td.col-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+  padding-right: 1.1rem;
+}
+
+.data-table th.col-main,
+.data-table td.col-main {
+  width: auto;
+}
+
+/* Menú desplegable contextual de acciones (tipo hamburguesa) */
+.action-dropdown-menu {
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.45), 0 6px 16px -2px rgba(0, 0, 0, 0.35);
+  animation: menuFadeIn 0.12s ease-out;
+}
+
+html[data-theme="light"] .action-dropdown-menu {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 14px 28px -4px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-theme="light"] .action-dropdown-item {
+  color: #1e293b !important;
+}
+
+html[data-theme="light"] .action-dropdown-item:hover {
+  background-color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .action-dropdown-menu {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme="dark"] .action-dropdown-item {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .action-dropdown-item:hover {
+  background-color: #1e293b !important;
+}
+
+.action-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.action-dropdown-item.item-danger {
+  color: #f87171 !important;
+}
+
+.action-dropdown-item.item-danger:hover {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Adaptación suave de utilidades slate en modo claro para evitar fatiga por alto contraste */
@@ -411,7 +499,9 @@ html[data-theme="light"] .text-indigo-100 {
 }
 
 .ip-octet-field {
-  width: 3.5rem;
+  flex: 1;
+  min-width: 2.1rem;
+  width: 100%;
   text-align: center;
   background: transparent;
   border: none;
@@ -419,7 +509,7 @@ html[data-theme="light"] .text-indigo-100 {
   font-family: inherit;
   font-size: 1rem;
   font-weight: 600;
-  padding: 0.15rem 0;
+  padding: 0.25rem 0;
   outline: none;
   -moz-appearance: textfield;
 }
@@ -440,9 +530,68 @@ html[data-theme="light"] .text-indigo-100 {
   color: var(--text-muted);
   font-size: 1.25rem;
   font-weight: 800;
-  padding: 0 0.35rem;
+  padding: 0 0.25rem;
   user-select: none;
   pointer-events: none;
   line-height: 1;
+}
+
+/* ==========================================================================
+   Adaptación Táctil y Responsiva para Teléfonos Móviles (< 1024px)
+   ========================================================================== */
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-bottom-bar {
+  background-color: var(--bg-surface);
+  border-color: var(--border-subtle);
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.12);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-bottom-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.55rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  touch-action: manipulation;
+}
+
+.mobile-bottom-item.active {
+  color: var(--accent-primary);
+}
+
+@media (max-width: 640px) {
+  .form-input-dark,
+  .form-select-dark {
+    min-height: 42px;
+    font-size: 16px; /* Previene zoom automático en Safari iOS al tocar campos */
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+
+  button.w-full,
+  a.w-full {
+    white-space: normal;
+    text-align: center;
+  }
 }
 

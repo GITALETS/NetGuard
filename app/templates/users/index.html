@@ -12,7 +12,40 @@
 {% block content %}
 <div class="space-y-5">
   <div class="surface-card overflow-hidden">
-    <div class="overflow-x-auto">
+    <!-- Vista Móvil (< 768px) -->
+    <div class="block md:hidden p-3 space-y-3">
+      {% for u in users %}
+        <div class="surface-subtle p-4 space-y-2.5 border border-slate-800/80">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-9 h-9 rounded-full bg-blue-600/15 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+                {{ u.full_name[:1]|upper }}
+              </div>
+              <div class="min-w-0">
+                <div class="font-bold text-sm theme-text-primary truncate">{{ u.full_name }}</div>
+                <div class="text-xs font-mono-code theme-text-muted">@{{ u.username }}</div>
+              </div>
+            </div>
+            {% if u.is_active %}
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 shrink-0">Activo</span>
+            {% else %}
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/60 shrink-0">Inactivo</span>
+            {% endif %}
+          </div>
+          <div class="text-xs theme-text-secondary">
+            <div><strong>{{ u.role_label }}</strong></div>
+            <div class="theme-text-muted truncate">{{ u.email }}</div>
+          </div>
+          <div class="pt-2 border-t border-slate-800/70">
+            <a href="{{ url_for('users.edit', user_id=u.id) }}" class="btn-secondary w-full text-xs py-1.5">
+              Editar Cuenta
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="hidden md:block overflow-x-auto">
       <table class="data-table">
         <thead>
           <tr>

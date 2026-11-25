@@ -9,7 +9,7 @@ from app.extensions import db
 from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.schedule import AccessSchedule
-from app.routes.decorators import admin_required, write_permission_required
+from app.routes.decorators import admin_required
 from app.services.policy_service import parse_datetime_input
 from app.services.schedule_service import (
     create_schedule,
@@ -42,10 +42,10 @@ def index():
 
     query = AccessSchedule.query
     if device_id:
-        query = query.filter(AccessSchedule.device_id == device_id)
+        query = query.filter((AccessSchedule.device_id == device_id) | (AccessSchedule.device_id.is_(None)))
 
     schedules = query.order_by(AccessSchedule.is_active.desc(), AccessSchedule.created_at.desc()).all()
-    devices = Device.query.order_by(Device.name.asc()).all()
+    devices = Device.query.filter(Device.admin_status != "blocked").order_by(Device.name.asc()).all()
     upcoming_windows = get_global_upcoming_windows(reference_dt=eval_dt, limit=8)
 
     return render_template(
@@ -65,13 +65,10 @@ def index():
 @login_required
 @admin_required
 def create():
-    devices = Device.query.order_by(Device.name.asc()).all()
-    if not devices:
-        flash("Antes de configurar un horario, debe registrar al menos un dispositivo.", "warning")
-        return redirect(url_for("devices.create"))
-
+    devices = Device.query.filter(Device.admin_status != "blocked").order_by(Device.name.asc()).all()
     policies = AccessPolicy.query.order_by(AccessPolicy.name.asc()).all()
-    preselected_device_id = request.args.get("device_id", type=int) or devices[0].id
+    raw_preselected = request.args.get("device_id")
+    preselected_device_id = raw_preselected if raw_preselected else "all"
 
     form_data = {
         "label": "",
@@ -139,12 +136,12 @@ def create():
 @admin_required
 def edit(schedule_id: int):
     schedule = db.get_or_404(AccessSchedule, schedule_id)
-    devices = Device.query.order_by(Device.name.asc()).all()
+    devices = Device.query.filter(Device.admin_status != "blocked").order_by(Device.name.asc()).all()
     policies = AccessPolicy.query.order_by(AccessPolicy.name.asc()).all()
 
     form_data = {
         "label": schedule.label,
-        "device_id": schedule.device_id,
+        "device_id": schedule.device_id if schedule.device_id is not None else "all",
         "policy_id": schedule.policy_id or "",
         "days_of_week": [str(d) for d in schedule.days_list_sorted],
         "start_time": schedule.start_time,

@@ -41,12 +41,18 @@
           ¿A qué aparato se le aplica? <span class="text-rose-400">*</span>
         </label>
         <select id="device_id" name="device_id" class="form-select-dark">
+          <option value="all" {% if not form_data.get('device_id') or form_data.get('device_id') in ('all', '0', None) %}selected{% endif %}>
+            Todos los dispositivos (Toda la casa - Excepto bloqueados)
+          </option>
           {% for dev in devices %}
-            <option value="{{ dev.id }}" {% if form_data.get('device_id')|int == dev.id %}selected{% endif %}>
+            <option value="{{ dev.id }}" {% if form_data.get('device_id')|string == dev.id|string %}selected{% endif %}>
               {{ dev.name }} ({{ dev.ip_address }})
             </option>
           {% endfor %}
         </select>
+        <p class="text-xs theme-text-secondary mt-1">
+          Aplica a toda la casa o a un equipo particular. Los equipos bloqueados administrativamente quedan automáticamente excluidos.
+        </p>
       </div>
 
       <div>

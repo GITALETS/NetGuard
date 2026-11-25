@@ -45,7 +45,7 @@ class AccessSchedule(db.Model):
     device_id = db.Column(
         db.Integer,
         db.ForeignKey("devices.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     policy_id = db.Column(
@@ -126,6 +126,25 @@ class AccessSchedule(db.Model):
     @property
     def behavior_label(self) -> str:
         return self.BEHAVIOR_LABELS.get(self.window_behavior, self.window_behavior)
+
+    @property
+    def is_global(self) -> bool:
+        """Indica si el horario aplica de forma global a todos los dispositivos de la red."""
+        return self.device_id is None
+
+    @property
+    def target_display_name(self) -> str:
+        """Devuelve el nombre del dispositivo o la etiqueta global para toda la casa."""
+        if self.device:
+            return self.device.name
+        return "Todos los dispositivos de casa"
+
+    @property
+    def target_display_ip(self) -> str:
+        """Devuelve la dirección IP del dispositivo o el indicador de toda la red."""
+        if self.device:
+            return self.device.ip_address
+        return "Toda la red local (Excepto bloqueados)"
 
     def is_in_window_at(self, reference_dt: Optional[datetime] = None) -> bool:
         """

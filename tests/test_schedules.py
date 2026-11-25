@@ -116,3 +116,74 @@ def test_schedule_validation_and_midnight_crossing_evaluation(app, admin_user):
         delete_schedule(sch_night, user_id=admin_user)
         delete_schedule(sch_day, user_id=admin_user)
 
+
+def test_global_schedule_and_blocked_device_exclusion(app, admin_user):
+    """Comprueba que los equipos bloqueados no puedan tener horarios y que los horarios globales funcionen."""
+    with app.app_context():
+        # Dispositivo activo
+        dev_active = create_device(
+            {
+                "name": "Laptop Estudio",
+                "ip_address": "192.168.1.55",
+                "network_scope": "192.168.1.0/24",
+                "device_type": "laptop",
+                "admin_status": "authorized",
+            },
+            user_id=admin_user,
+        )
+
+        # Dispositivo bloqueado
+        dev_blocked = create_device(
+            {
+                "name": "Telefono Desconocido",
+                "ip_address": "192.168.1.56",
+                "network_scope": "192.168.1.0/24",
+                "device_type": "smartphone",
+                "admin_status": "blocked",
+            },
+            user_id=admin_user,
+        )
+
+        # 1. Asignar horario a dispositivo bloqueado -> debe rechazar
+        with pytest.raises(ValidationError, match="se encuentra bloqueado"):
+            create_schedule(
+                {
+                    "label": "Horario en Equipo Bloqueado",
+                    "device_id": dev_blocked.id,
+                    "days_of_week": [0, 1, 2],
+                    "start_time": "10:00",
+                    "end_time": "12:00",
+                },
+                user_id=admin_user,
+            )
+
+        # 2. Crear horario global para toda la casa (device_id = None o 'all')
+        sch_global = create_schedule(
+            {
+                "label": "Descanso Nocturno Toda la Casa",
+                "device_id": "all",
+                "days_of_week": [0, 1, 2, 3, 4],
+                "start_time": "23:00",
+                "end_time": "06:00",
+                "window_behavior": "restricted_window",
+                "is_active": True,
+            },
+            user_id=admin_user,
+        )
+
+        assert sch_global.device_id is None
+        assert sch_global.is_global is True
+        assert sch_global.target_display_name == "Todos los dispositivos de casa"
+        assert "Excepto bloqueados" in sch_global.target_display_ip
+        assert sch_global.crosses_midnight is True
+
+        # Verificar que get_global_upcoming_windows incluye horarios globales sin error
+        from app.services.schedule_service import get_global_upcoming_windows
+        windows = get_global_upcoming_windows(reference_dt=datetime(2026, 10, 26, 20, 0), limit=5)
+        assert len(windows) > 0
+        global_in_windows = any(w["schedule"].id == sch_global.id for w in windows)
+        assert global_in_windows is True
+
+        delete_schedule(sch_global, user_id=admin_user)
+
+

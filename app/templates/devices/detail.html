@@ -29,12 +29,12 @@
 {% block content %}
 <div class="space-y-6">
 
-  <!-- Pestañas de Navegación de la Ficha Unificada -->
-  <div class="flex border-b border-slate-800 space-x-2">
+  <!-- Pestañas de Navegación de la Ficha Unificada (Deslizable en móvil) -->
+  <div class="flex overflow-x-auto no-scrollbar border-b border-slate-800 gap-1 sm:gap-2">
     <button
       type="button"
       data-tab-target="tab-ficha"
-      class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-150 {% if active_tab == 'ficha' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
+      class="tab-btn px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-colors duration-150 shrink-0 {% if active_tab == 'ficha' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
     >
       Ficha Técnica y Permisos
     </button>
@@ -42,18 +42,18 @@
       <button
         type="button"
         data-tab-target="tab-editor"
-        class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-150 {% if active_tab == 'editor' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
+        class="tab-btn px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-colors duration-150 shrink-0 {% if active_tab == 'editor' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
       >
-        Editar Parámetros de Red
+        Editar Parámetros
       </button>
     {% endif %}
     {% if current_user.can_modify %}
       <button
         type="button"
         data-tab-target="tab-family"
-        class="tab-btn px-4 py-2.5 text-sm font-bold border-b-2 transition-colors duration-150 {% if active_tab == 'family' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
+        class="tab-btn px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-colors duration-150 shrink-0 {% if active_tab == 'family' %}border-blue-500 text-blue-400{% else %}border-transparent theme-text-secondary hover:theme-text-primary{% endif %}"
       >
-        Control Familiar de Internet
+        Control Familiar
       </button>
     {% endif %}
   </div>
@@ -112,6 +112,30 @@
         <span class="theme-text-secondary">{{ device.description }}</span>
       </div>
       {% endif %}
+
+      <!-- Comprobación de Conectividad en Tiempo Real (ICMP Ping) -->
+      <div class="surface-subtle p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-800">
+        <div class="space-y-0.5">
+          <div class="text-xs font-bold theme-text-primary">Verificación de Conexión en Tiempo Real (Ping ICMP)</div>
+          <div id="detail-ping-result" class="text-xs theme-text-secondary">
+            Comprueba si {{ device.ip_address }} responde en este instante dentro de tu red Wi-Fi o mini-módem.
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            id="btn-detail-ping"
+            data-ip="{{ device.ip_address }}"
+            data-device-id="{{ device.id }}"
+            class="btn-primary text-xs py-1.5 px-3"
+          >
+            Probar Conexión Ahora
+          </button>
+          <a href="{{ url_for('network.client_status', ip=device.ip_address) }}" class="btn-secondary text-xs py-1.5 px-3">
+            Estado en Vivo
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- Permisos y Horarios en 2 columnas -->
@@ -492,29 +516,35 @@
           </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
-          <form
-            method="POST"
-            action="{{ url_for('devices.delete', device_id=device.id) }}"
-            data-confirm-title="Eliminar dispositivo"
-            data-confirm-message="¿Está seguro de que desea eliminar permanentemente este dispositivo y sus políticas asociadas?"
-            class="inline"
+        <div class="pt-4 border-t border-slate-800 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3">
+          <button
+            type="submit"
+            form="delete-device-form"
+            class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline text-left sm:text-center"
           >
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button type="submit" class="text-xs text-rose-400 hover:text-rose-300 font-semibold underline">
-              Eliminar este Dispositivo
-            </button>
-          </form>
+            Eliminar este Dispositivo
+          </button>
 
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center justify-end gap-3">
             <button type="button" data-tab-target="tab-ficha" class="btn-secondary">
               Cancelar
             </button>
-            <button type="submit" class="btn-primary px-6 py-2">
-              Guardar Parámetros en Ficha
+            <button type="submit" class="btn-primary px-5 py-2">
+              Guardar Parámetros
             </button>
           </div>
         </div>
+      </form>
+
+      <form
+        id="delete-device-form"
+        method="POST"
+        action="{{ url_for('devices.delete', device_id=device.id) }}"
+        data-confirm-title="Eliminar dispositivo"
+        data-confirm-message="¿Está seguro de que desea eliminar permanentemente este dispositivo y sus políticas asociadas?"
+        class="hidden"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       </form>
     </div>
   </div>

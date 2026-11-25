@@ -6,10 +6,10 @@ en redes domésticas mediante gestión de direcciones IP"
 
 import os
 import click
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, flash, render_template
 from flask_wtf.csrf import CSRFError
 from app.extensions import csrf, db, login_manager, migrate
-from app.models import AccessPolicy, AccessSchedule, AuditLog, Device, RouterSyncLog, User
+from app.models import User  # Importa modelos y registra el cargador de sesión SQLAlchemy
 from app.routes import register_blueprints
 from app.services.demo_seed_service import clear_laboratory_demo_data, seed_laboratory_demo_data
 from app.services.router_adapter import get_router_adapter

@@ -9,7 +9,6 @@ from typing import Dict, List, Optional
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.extensions import db
 from app.models.category import SystemCategory
-from app.models.device import Device
 from app.services.audit_service import log_audit_event
 from app.services.validators import ValidationError
 

@@ -25,18 +25,28 @@ def create_schedule(
     if not label or len(label) < 3 or len(label) > 120:
         raise ValidationError("El nombre o etiqueta del horario es obligatorio (entre 3 y 120 caracteres).")
 
-    try:
-        device_id = int(data.get("device_id"))
-    except (TypeError, ValueError) as exc:
-        raise ValidationError("Debe seleccionar un dispositivo válido para el horario.") from exc
+    raw_device_id = data.get("device_id")
+    device = None
+    device_id = None
+    if raw_device_id not in (None, "", "all", "0", 0):
+        try:
+            device_id = int(raw_device_id)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("Debe seleccionar un dispositivo válido o toda la red familiar.") from exc
 
-    device = db.session.get(Device, device_id)
-    if not device:
-        raise ValidationError("El dispositivo seleccionado no existe.")
+        device = db.session.get(Device, device_id)
+        if not device:
+            raise ValidationError("El dispositivo seleccionado no existe.")
+        if device.admin_status == "blocked":
+            raise ValidationError(
+                f"El dispositivo '{device.name}' se encuentra bloqueado administrativamente y no puede tener horarios de acceso."
+            )
 
     policy_id = None
     raw_policy_id = data.get("policy_id")
     if raw_policy_id not in (None, "", "0", 0):
+        if device is None:
+            raise ValidationError("Un horario para todos los dispositivos no puede vincularse a una política individual.")
         try:
             policy_id = int(raw_policy_id)
         except (TypeError, ValueError) as exc:
@@ -66,7 +76,7 @@ def create_schedule(
 
     schedule = AccessSchedule(
         label=label,
-        device_id=device.id,
+        device_id=device.id if device else None,
         policy_id=policy_id,
         days_of_week=days_csv,
         start_time=start_clean,
@@ -83,19 +93,24 @@ def create_schedule(
         db.session.add(schedule)
         db.session.flush()
         midnight_tag = " (Cruza medianoche)" if crosses_midnight else ""
+        target_desc = (
+            f"para dispositivo {device.internal_code} ({device.ip_address})"
+            if device
+            else "para todos los dispositivos familiares (Toda la casa)"
+        )
         log_audit_event(
             event_type="SCHEDULE_CREATED",
             module="schedules",
             description=(
                 f"Creación de horario '{schedule.label}' ({start_clean} a {end_clean}{midnight_tag}) "
-                f"para dispositivo {device.internal_code} ({device.ip_address})."
+                f"{target_desc}."
             ),
             severity="info",
             user_id=user_id,
             target_type="schedule",
             target_id=schedule.id,
             metadata={
-                "device_id": device.id,
+                "device_id": device.id if device else None,
                 "policy_id": policy_id,
                 "days_of_week": days_csv,
                 "start_time": start_clean,
@@ -121,15 +136,36 @@ def update_schedule(
     if not label or len(label) < 3 or len(label) > 120:
         raise ValidationError("El nombre o etiqueta del horario es obligatorio (entre 3 y 120 caracteres).")
 
-    device_id = int(data.get("device_id", schedule.device_id))
-    device = db.session.get(Device, device_id)
-    if not device:
-        raise ValidationError("El dispositivo seleccionado no existe.")
+    device = None
+    device_id = None
+    if "device_id" in data:
+        raw_device_id = data.get("device_id")
+        if raw_device_id not in (None, "", "all", "0", 0):
+            try:
+                device_id = int(raw_device_id)
+            except (TypeError, ValueError) as exc:
+                raise ValidationError("Debe seleccionar un dispositivo válido o toda la red familiar.") from exc
+            device = db.session.get(Device, device_id)
+            if not device:
+                raise ValidationError("El dispositivo seleccionado no existe.")
+            if device.admin_status == "blocked":
+                raise ValidationError(
+                    f"El dispositivo '{device.name}' se encuentra bloqueado administrativamente y no puede tener horarios de acceso."
+                )
+    else:
+        device_id = schedule.device_id
+        if device_id:
+            device = db.session.get(Device, device_id)
 
     policy_id = None
     raw_policy_id = data.get("policy_id")
     if raw_policy_id not in (None, "", "0", 0):
-        policy_id = int(raw_policy_id)
+        if device is None:
+            raise ValidationError("Un horario para todos los dispositivos no puede vincularse a una política individual.")
+        try:
+            policy_id = int(raw_policy_id)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("Identificador de política inválido.") from exc
         policy = db.session.get(AccessPolicy, policy_id)
         if not policy or policy.device_id != device.id:
             raise ValidationError("La política seleccionada no es válida para el dispositivo indicado.")
@@ -147,7 +183,7 @@ def update_schedule(
     )
 
     schedule.label = label
-    schedule.device_id = device.id
+    schedule.device_id = device.id if device else None
     schedule.policy_id = policy_id
     schedule.days_of_week = days_csv
     schedule.start_time = start_clean
@@ -159,18 +195,24 @@ def update_schedule(
     schedule.enforcement_note = (data.get("enforcement_note") or "").strip() or None
 
     try:
+        target_desc = (
+            f"para dispositivo {device.internal_code}"
+            if device
+            else "para todos los dispositivos familiares (Toda la casa)"
+        )
         log_audit_event(
             event_type="SCHEDULE_UPDATED",
             module="schedules",
             description=(
                 f"Actualización de horario '{schedule.label}' (ID #{schedule.id}) "
-                f"para dispositivo {device.internal_code}."
+                f"{target_desc}."
             ),
             severity="info",
             user_id=user_id,
             target_type="schedule",
             target_id=schedule.id,
             metadata={
+                "device_id": schedule.device_id,
                 "start_time": start_clean,
                 "end_time": end_clean,
                 "crosses_midnight": crosses_midnight,

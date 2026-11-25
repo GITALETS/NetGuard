@@ -73,16 +73,78 @@
   <!-- Listado de dispositivos -->
   <div class="surface-card overflow-hidden">
     {% if devices %}
-      <div class="overflow-x-auto">
+      <!-- Vista de Tarjetas para Teléfono (< 768px) -->
+      <div class="block md:hidden p-3 space-y-3">
+        {% for dev in devices %}
+          <div class="surface-subtle p-4 space-y-3 border border-slate-800/80">
+            <div class="flex items-start justify-between gap-2.5">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
+                  {{ device_type_icon(dev.device_type) }}
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="font-bold text-sm theme-text-primary hover:underline truncate">
+                      {{ dev.name }}
+                    </a>
+                    {{ demo_badge(dev.is_demo) }}
+                  </div>
+                  <div class="text-xs font-mono-code theme-text-secondary">{{ dev.ip_address }}</div>
+                </div>
+              </div>
+              <div class="shrink-0">
+                {{ device_status_badge(dev.admin_status, dev.admin_status_label) }}
+              </div>
+            </div>
+
+            <div class="text-xs theme-text-secondary flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">{{ dev.profile_label }}</span>
+              <span>{{ dev.type_label }}</span>
+              <span>&bull; {{ dev.owner_label or 'Uso general' }}</span>
+              {% if dev.mac_address %}
+                <span class="font-mono-code text-[11px] theme-text-muted">MAC: {{ dev.mac_address }}</span>
+              {% endif %}
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/70 flex flex-wrap items-center gap-2">
+              <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="btn-primary text-xs py-1.5 px-3 flex-1 text-center">
+                {% if current_user.can_modify %}Control / Ver Ficha{% else %}Ver Ficha{% endif %}
+              </a>
+              {% if current_user.is_admin %}
+                <a href="{{ url_for('devices.edit', device_id=dev.id) }}" class="btn-secondary text-xs py-1.5 px-3">
+                  Editar
+                </a>
+              {% endif %}
+              {% if current_user.can_modify %}
+                <form
+                  method="POST"
+                  action="{{ url_for('devices.delete', device_id=dev.id) }}"
+                  data-confirm-title="Eliminar {{ dev.name }}"
+                  data-confirm-message="¿Deseas quitar '{{ dev.name }}' de la lista de equipos de casa?"
+                  class="inline"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60 min-h-[40px]">
+                    Quitar
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Tabla de Escritorio (>= 768px) -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Aparato / De quién es</th>
-              <th>Tipo de equipo</th>
-              <th>Dirección IP</th>
-              <th>Permiso de Acceso</th>
-              <th>Estado en Sistema</th>
-              <th class="text-right">Opciones</th>
+              <th class="col-main">Aparato / De quién es</th>
+              <th class="col-compact">Tipo de equipo</th>
+              <th class="col-compact">Dirección IP</th>
+              <th class="col-compact">Permiso de Acceso</th>
+              <th class="col-compact">Estado en Sistema</th>
+              <th class="col-actions">Opciones</th>
             </tr>
           </thead>
           <tbody>
@@ -130,27 +192,48 @@
                 {{ router_sync_badge(dev.router_sync_status, dev.router_sync_label) }}
               </td>
 
-              <td class="text-right whitespace-nowrap">
-                <div class="inline-flex items-center gap-2">
-                  <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="btn-secondary">
+              <td class="col-actions">
+                <div class="inline-flex items-center justify-end gap-1.5 relative action-dropdown-container">
+                  <a href="{{ url_for('devices.detail', device_id=dev.id) }}" class="btn-secondary text-xs py-1 px-2.5">
                     Ver ficha
                   </a>
                   {% if current_user.can_modify %}
-                    <a href="{{ url_for('devices.edit', device_id=dev.id) }}" class="btn-secondary">
-                      Editar
-                    </a>
-                    <form
-                      method="POST"
-                      action="{{ url_for('devices.delete', device_id=dev.id) }}"
-                      data-confirm-title="Eliminar {{ dev.name }}"
-                      data-confirm-message="¿Deseas quitar '{{ dev.name }}' de la lista de equipos de casa?"
-                      class="inline"
+                    <button
+                      type="button"
+                      class="action-dropdown-btn btn-secondary text-xs py-1 px-2 inline-flex items-center gap-1"
+                      title="Menú de opciones"
+                      aria-haspopup="true"
+                      aria-expanded="false"
                     >
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                      <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60">
-                        Quitar
-                      </button>
-                    </form>
+                      <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                      </svg>
+                      <svg class="w-2.5 h-2.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    <div class="action-dropdown-menu hidden fixed rounded-xl shadow-2xl py-1.5 z-50 border text-left min-w-[170px]">
+                      <a href="{{ url_for('devices.edit', device_id=dev.id) }}" class="action-dropdown-item">
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span>Editar equipo</span>
+                      </a>
+                      <div class="my-1 border-t border-slate-800"></div>
+                      <form
+                        method="POST"
+                        action="{{ url_for('devices.delete', device_id=dev.id) }}"
+                        data-confirm-title="Eliminar {{ dev.name }}"
+                        data-confirm-message="¿Deseas quitar '{{ dev.name }}' de la lista de equipos de casa?"
+                        class="block m-0"
+                      >
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <button type="submit" class="action-dropdown-item item-danger">
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          <span>Quitar equipo</span>
+                        </button>
+                      </form>
+                    </div>
                   {% endif %}
                 </div>
               </td>

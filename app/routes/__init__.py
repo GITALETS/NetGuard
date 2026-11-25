@@ -8,6 +8,7 @@ from app.routes.auth import auth_bp
 from app.routes.categories import categories_bp
 from app.routes.dashboard import dashboard_bp
 from app.routes.devices import devices_bp
+from app.routes.network import network_bp
 from app.routes.policies import policies_bp
 from app.routes.schedules import schedules_bp
 from app.routes.settings import settings_bp
@@ -24,4 +25,5 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(users_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(categories_bp)
+    app.register_blueprint(network_bp)
 

@@ -9,7 +9,7 @@ from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.router_event import RouterSyncLog
 from app.models.user import utc_now_naive
-from app.routes.decorators import admin_required, write_permission_required
+from app.routes.decorators import admin_required
 from app.services.policy_service import (
     create_policy,
     delete_policy,

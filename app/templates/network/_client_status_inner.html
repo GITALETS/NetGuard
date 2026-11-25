@@ -1,0 +1,93 @@
+<div class="space-y-5" id="client-live-status-root" data-target-ip="{{ target_ip }}">
+  <div class="surface-card p-5 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Verificación en Vivo por IP</div>
+        <h2 class="text-lg font-bold theme-text-primary">Estado de Conexión en la Red</h2>
+      </div>
+      <span id="live-clock-badge" class="text-[11px] font-mono-code px-2.5 py-1 rounded-lg bg-slate-800 theme-text-secondary">
+        {{ evaluation.evaluated_at }}
+      </span>
+    </div>
+
+    <!-- Tarjeta principal de veredicto -->
+    <div id="verdict-banner" class="p-4 rounded-2xl border space-y-2
+      {% if evaluation.verdict_color == 'emerald' %}bg-emerald-950/70 border-emerald-700/70 text-emerald-200
+      {% elif evaluation.verdict_color == 'amber' %}bg-amber-950/70 border-amber-700/70 text-amber-200
+      {% elif evaluation.verdict_color == 'rose' %}bg-rose-950/70 border-rose-700/70 text-rose-200
+      {% elif evaluation.verdict_color == 'cyan' %}bg-cyan-950/70 border-cyan-700/70 text-cyan-200
+      {% else %}bg-slate-800/80 border-slate-700 text-slate-200{% endif %}">
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <span id="verdict-label" class="text-base font-bold">{{ evaluation.verdict_label }}</span>
+        <span class="font-mono-code text-xs px-2 py-0.5 rounded bg-slate-900/60">IP: {{ evaluation.ip_address }}</span>
+      </div>
+      <p id="verdict-reason" class="text-xs sm:text-sm leading-relaxed">{{ evaluation.reason }}</p>
+    </div>
+
+    <!-- Indicador de Intermediario de Intermitencia en tiempo real -->
+    <div id="intermittent-live-box" class="{% if not evaluation.intermittent_status %}hidden{% endif %} surface-subtle p-4 space-y-2.5 border border-cyan-700/50">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs font-bold text-cyan-400">Intermediario con Intermitencia en Curso</span>
+        <span id="intermittent-countdown" class="font-mono-code text-sm font-bold theme-text-primary">
+          {% if evaluation.intermittent_status %}{{ evaluation.intermittent_status.remaining_mmss }}{% endif %}
+        </span>
+      </div>
+      <div id="intermittent-phase-label" class="text-xs font-semibold theme-text-primary">
+        {% if evaluation.intermittent_status %}{{ evaluation.intermittent_status.phase_label }} — {{ evaluation.intermittent_status.target }}{% endif %}
+      </div>
+      <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+        <div id="intermittent-progress-bar" class="h-full bg-cyan-500 transition-all duration-300" style="width: {{ evaluation.intermittent_status.progress_percent if evaluation.intermittent_status else 0 }}%"></div>
+      </div>
+    </div>
+
+    <!-- Identificación del dispositivo detectado -->
+    <div id="device-identity-box">
+      {% if evaluation.device %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div class="surface-subtle p-3">
+            <div class="theme-text-muted">Aparato Registrado</div>
+            <div class="font-bold text-sm theme-text-primary mt-0.5">{{ evaluation.device.name }}</div>
+            <div class="theme-text-secondary mt-0.5">{{ evaluation.device.owner_label }} &bull; {{ evaluation.device.profile_label }}</div>
+          </div>
+          <div class="surface-subtle p-3">
+            <div class="theme-text-muted">Identificadores</div>
+            <div class="font-mono-code font-semibold theme-text-primary mt-0.5">{{ evaluation.device.internal_code }} &bull; {{ evaluation.device.mac_address }}</div>
+            <div class="theme-text-secondary mt-0.5">Estado BD: {{ evaluation.device.admin_status_label }}</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="surface-subtle p-3.5 text-xs theme-text-secondary">
+          Tu dirección IP actual (<code class="font-mono-code">{{ client_ip }}</code>) aún no está registrada en NetGuard. Un administrador o el operador puede registrarla en 1 clic desde el Monitor de Red.
+        </div>
+      {% endif %}
+    </div>
+
+    {% if current_user.is_authenticated and devices %}
+      <form method="GET" action="{{ url_for('network.client_status') }}" class="pt-3 border-t border-slate-800 space-y-2">
+        <label for="sim_ip_select" class="block text-xs font-semibold theme-text-secondary">
+          Cambiar IP inspeccionada (Solo sesión iniciada):
+        </label>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <select id="sim_ip_select" name="ip" class="form-select-dark text-xs flex-1">
+            <option value="{{ client_ip }}" {% if target_ip == client_ip %}selected{% endif %}>
+              Mi IP real actual ({{ client_ip }})
+            </option>
+            {% for d in devices %}
+              <option value="{{ d.ip_address }}" {% if target_ip == d.ip_address %}selected{% endif %}>
+                {{ d.name }} ({{ d.ip_address }}) - {{ d.admin_status_label }}
+              </option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn-secondary text-xs">Consultar IP</button>
+        </div>
+      </form>
+    {% endif %}
+
+    <div class="pt-2 flex items-center justify-between text-[11px] theme-text-muted">
+      <span>Actualización automática en vivo cada 3 segundos</span>
+      <button type="button" id="btn-refresh-client-status" class="text-blue-400 hover:underline font-semibold">
+        Actualizar ahora
+      </button>
+    </div>
+  </div>
+</div>

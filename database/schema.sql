@@ -167,7 +167,7 @@ CREATE INDEX ix_policies_validity ON access_policies (valid_from, valid_until);
 CREATE TABLE IF NOT EXISTS access_schedules (
     id INT AUTO_INCREMENT PRIMARY KEY,
     label VARCHAR(120) NOT NULL,
-    device_id INT NOT NULL,
+    device_id INT NULL,
     policy_id INT NULL,
     days_of_week VARCHAR(32) NOT NULL,
     start_time VARCHAR(5) NOT NULL,

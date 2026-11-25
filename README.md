@@ -1,7 +1,7 @@
 # NetGuard Home IP
 
 <p align="center">
-  <strong>Sistema web para administración de dispositivos y políticas de acceso en redes domésticas mediante gestión de direcciones IP</strong>
+  <strong>Sistema web para administracion de dispositivos y politicas de acceso en redes domesticas mediante gestion de direcciones IP</strong>
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Framework-Flask%203.x-black?style=flat-square&logo=flask&logoColor=white" alt="Flask">
   <img src="https://img.shields.io/badge/Base%20de%20Datos-MySQL%208.0%2B-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL">
-  <img src="https://img.shields.io/badge/Pruebas-23%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
+  <img src="https://img.shields.io/badge/Pruebas-27%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
   <img src="https://img.shields.io/badge/Licencia-Proyecto%20de%20Tesis-lightgrey?style=flat-square" alt="Licencia">
 </p>
 
@@ -17,217 +17,155 @@
 
 ## 1. Descripcion General del Proyecto
 
-NetGuard Home IP es una plataforma de software orientada a la gestion de ciberseguridad defensiva, direccionamiento logico y administracion de politicas de acceso en redes locales residenciales.
+NetGuard Home IP es una plataforma web orientada a la gestion de ciberseguridad defensiva, direccionamiento logico y control de acceso en redes locales residenciales o redes moviles de prueba.
 
-En los entornos familiares modernos convergen multiples tipos de tecnologias: computadoras de trabajo, telefonos moviles, tabletas de menores de edad, pantallas inteligentes, consolas de videojuegos y dispositivos de Internet de las Cosas (IoT). La mayoria de los enrutadores comerciales carecen de una interfaz intuitiva y centralizada para auditar quien esta conectado, regular el tiempo de pantalla infantil o aplicar reglas de conexion sin requerir conocimientos avanzados de telecomunicaciones.
-
-NetGuard resuelve esta problematica implementando una arquitectura de tres capas que combina rigor academico de redes (estandares RFC 1918 y modelo TCP/IP) con una experiencia de usuario accesible y libre de tecnicismos complejos para la familia.
+En los entornos familiares modernos convergen multiples dispositivos: computadoras de trabajo, telefonos inteligentes, tabletas infantiles, televisiones inteligentes, consolas de videojuegos y equipos IoT. Los enrutadores domesticos convencionales suelen ofrecer interfaces tecnicas complejas o fragmentadas. NetGuard Home IP resuelve esta problematica mediante una arquitectura modular en tres capas que combina rigor academico en redes TCP/IP (RFC 1918) con una experiencia amigable tanto en computadora como en telefono movil.
 
 ---
 
 ## 2. Jerarquia de Roles y Control de Acceso (RBAC)
 
-El sistema implementa una matriz formal de control de acceso basada en roles (Role-Based Access Control) para separar las responsabilidades tecnicas de la operacion diaria del hogar:
+El sistema separa las facultades tecnicas de la operacion cotidiana del hogar mediante cuatro roles estrictos en `users` y en los decoradores de `app/routes/decorators.py`:
 
-| Rol del Usuario | Denominacion Formal | Alcance de Privilegios |
+| Rol | Denominacion | Alcance de Privilegios |
 | :--- | :--- | :--- |
-| **superadmin** | Superadministrador | Control total de la plataforma. Puede crear o revocar cuentas de otros administradores, configurar parametros globales de subred, gestionar categorias del sistema y realizar auditorias exhaustivas. |
-| **admin** | Administrador de Red | Gestion de dispositivos, asignacion de direcciones IP y MAC, creacion de politicas de red, horarios y definicion de nuevas categorias dinamicas. No puede revocar cuentas de superadministrador. |
-| **operator** | Operador del Hogar | Diseñado para padres o tutores de familia. Cuenta con una interfaz simplificada de "Control Familiar de Internet" que permite pausar o reactivar la conexion de cualquier aparato con un solo clic, sin ver terminos tecnicos. |
-| **auditor** | Auditor del Sistema | Perfil de solo lectura. Permite consultar el inventario, los registros de auditoria inmutables y generar reportes tecnicos sin facultades de modificacion de datos. |
+| **superadmin** | Superadministrador | Control total del sistema. Administra usuarios (incluidos administradores), configura parametros globales y gestiona categorias dinamicas. |
+| **admin** | Administrador de Red | Gestiona dispositivos, politicas de acceso, horarios semanales (individuales o globales), categorias dinamicas y monitoreo en vivo. |
+| **operator** | Operador del Hogar | Enfocado en padres o tutores sin perfil tecnico. Modula el acceso familiar de los equipos (Internet Libre, Pausa Temporal, Modo Estudio, Bloqueo) desde una vista simplificada; no crea ni edita reglas o horarios tecnicos ni categorias. |
+| **auditor** | Auditor | Perfil de solo lectura para consultar inventario, horarios, monitoreo y exportar bitacoras de auditoria en CSV sin capacidad de modificar datos. |
 
 ---
 
-## 3. Modulos Principales y Componentes del Sistema
+## 3. Explicacion Detallada de Modulos y Funcionalidades
 
-### 3.1. Ficha Tecnica Unificada con Editor Integrado
-En lugar de fragmentar la visualizacion y la modificacion de un dispositivo en pantallas separadas, NetGuard agrupa en una sola interfaz modular (`/devices/<id>`):
-1. **Pestaña de Ficha Tecnica**: Especificaciones completas del aparato (codigo interno, nombre, IP asignada, direccion MAC, perfil familiar, fecha de registro, politicas vigentes y trazabilidad de eventos).
-2. **Pestaña de Editor Integrado**: Formulario completo de actualizacion que permite modificar parametros de red con validacion interactiva en tiempo real sin abandonar la vista del equipo.
-3. **Pestaña de Control Familiar**: Panel amigable con botones directos para alternar entre "Internet Libre", "Pausa Temporal", "Modo Estudio" y "Bloqueo de Conexion".
+### 3.1. Monitor de Red en Vivo y Acceso desde Telefono (`/network`)
+Implementado en `app/services/network_probe_service.py` y `app/routes/network.py`, esta disenado especificamente para operar con cualquier modem domestico, mini-modem portatil con chip telefonico (MiFi) o zona Wi-Fi compartida:
+- **Deteccion Automatica de Red y Subred**: Identifica en automatico la interfaz Wi-Fi activa, la direccion IP local del servidor, la puerta de enlace (modem o mini-modem) y la subred CIDR vigente (por ejemplo `192.168.8.0/24`, `192.168.0.0/24`, `192.168.1.0/24` o `192.168.96.0/20`).
+- **Codigos QR Locales para Celulares**: Genera codigos QR vectoriales SVG sin depender de servicios externos para abrir inmediatamente el panel completo en el telefono del presentador o el portal de estado en vivo en otro telefono.
+- **Descubrimiento en Tiempo Real (ARP + Barrido ICMP)**: Lee la cache ARP fisica del sistema operativo y realiza un sondeo ICMP paralelo para listar los equipos conectados actualmente al mini-modem con su IP, direccion MAC y latencia real en milisegundos, permitiendo registrarlos en NetGuard con un solo clic.
+- **Portal Cliente en Tiempo Real (`/network/mi-acceso`)**: Pagina movil ligera que identifica la IP real del telefono conectado al mini-modem (`request.remote_addr`) y se actualiza automaticamente cada 3 segundos para mostrar en vivo si el dispositivo tiene Internet Libre, Pausa Familiar, Bloqueo, Horario Activo o en que fase del ciclo de Intermitencia se encuentra.
 
-### 3.2. Motor de Categorias Dinamicas
-Permite que el Administrador y el Superadministrador extiendan el catalogo del sistema directamente desde los formularios mediante la tabla `system_categories`:
-- **Tipos de Dispositivo (`device_type`)**: Permite dar de alta nuevas categorias de hardware (ej. Asistente de Voz, Consola Portatil, Camara IP Exterior).
-- **Perfiles Familiares (`device_profile`)**: Permite crear roles de uso adaptados al hogar (ej. Teletrabajo, Invitados Especiales, Menores con Tutoria).
-- **Destinos de Red (`policy_target`)**: Categorias de filtrado tematico (Redes Sociales, Videojuegos, Streaming, Portales Educativos).
+### 3.2. Administracion de Dispositivos y Ficha Unificada (`/devices`)
+- **Entrada Segmentada IPv4 con Puntos Fijos**: Campo intuitivo dividido en cuatro octetos (`XXX . XXX . XXX . XXX`) que avanza automaticamente entre octetos y adapta la subred privada sugerida al mini-modem o Wi-Fi conectado.
+- **Ficha Tecnica Unificada (`/devices/<id>`)**: Centraliza en pestanas responsivas:
+  1. Especificaciones tecnicas, historial reciente, directivas del adaptador y prueba de **Ping ICMP en tiempo real**.
+  2. Editor de parametros de red integrado (exclusivo para `admin` y `superadmin`).
+  3. Panel amigable de **Control Familiar de Internet** (botones de un toque para operadores y administradores).
+- **Menus Contextuales tipo Hamburguesa**: En tablas de escritorio, las acciones secundarias (Editar, Pausar, Quitar) se agrupan en menus desplegables compactos que evitan la dispersion horizontal de botones.
 
-### 3.3. Intermediario de Red y Politicas con Intermitencia
-El modulo de politicas incorpora un motor de intermediacion de trafico que permite:
-- **Destino Especifico**: Aplicar directivas hacia un dominio concreto (ej. `youtube.com`, `tiktok.com`, `roblox.com`) o hacia todo el trafico de Internet.
-- **Modo Intermitente (Ciclos de Actividad y Pausa)**: Establece intervalos continuos de conexion (ej. 30 o 45 minutos activos) seguidos de una pausa obligatoria (ej. 15 minutos de descanso o estudio).
-- **Traduccion al Adaptador de Red**: El simulador de router genera directivas formales con estructura de reglas de firewall e intermediacion por paquetes.
+### 3.3. Politicas de Acceso e Intermediario con Intermitencia (`/policies`)
+- Soporta seis tipos de politicas: Autorizacion Administrativa, Acceso Temporal, Horarios Permitidos, Restricciones de Navegacion Configurables, Politica Permanente y **Control Intermediario con Intermitencia**.
+- **Intermediario de Destino e Intermitencia**: Permite orientar reglas hacia un dominio especifico (ej. `youtube.com`, `tiktok.com`, `roblox.com`) configurando ciclos continuos de minutos activos seguidos de minutos de pausa obligatoria.
+- **Prevencion de Contradicciones y Vigencia Automatica**: Evita solapamientos activos con acciones opuestas en la misma prioridad y actualiza automaticamente politicas vencidas a `expired`.
 
-### 3.4. Control Familiar para Operadores (Usabilidad y Accesibilidad)
-Elimina la barrera tecnica para miembros de la familia que no dominan terminos de telecomunicaciones:
-- **Internet Libre (Normal)**: Acceso irrestricto sin filtros temporales.
-- **Pausa Temporal de Internet**: Ideal para la hora de comer o convivir en familia sin alterar la red de los demas aparatos.
-- **Modo Estudio y Tareas**: Filtra plataformas recreativas permitiendo unicamente herramientas academicas y bibliotecas virtuales.
-- **Bloqueo / Corte de Conexion**: Suspende la salida a Internet del aparato seleccionado.
+### 3.4. Horarios Familiares de Uso (`/schedules`)
+- Permite programar reglas semanales (con botones rapidos de Lunes a Viernes, Fin de Semana o Todos los dias) y ventanas nocturnas que cruzan la medianoche (`start_time > end_time`).
+- **Horarios Globales para Toda la Casa**: Permite asignar un horario a **"Todos los dispositivos (Toda la casa - Excepto bloqueados)"** (`device_id IS NULL`) ademas de dispositivos individuales.
+- **Exclusion Automatica de Equipos Bloqueados**: Los equipos cuyo estado administrativo es `blocked` quedan excluidos de los selectores de horarios porque ya tienen el acceso cortado.
 
----
+### 3.5. Motor de Categorias Dinamicas (`/categories`)
+Permite que `admin` y `superadmin` creen nuevas opciones desde los formularios sin editar codigo fuente, almacenandolas en la tabla `system_categories`:
+- Tipos de aparato (`device_type`), perfiles familiares (`device_profile`), estados/permisos (`admin_status`) y destinos de filtrado (`policy_target`).
 
-## 4. Estrategia de Validacion en Tres Capas
-
-Para garantizar la integridad y robustez del sistema, cada dato ingresado atraviesa tres niveles independientes de comprobacion:
-
-1. **Capa Front-End (Navegador Web)**:
-   - Atributos HTML5 semanticos (`pattern`, `required`, `maxlength`).
-   - JavaScript reactivo en `app.js` con analisis inmediato de direcciones IP (detecta si el usuario ingresa por error la IP del router `.1`, la direccion de red `.0` o la difusion `.255`).
-   - Normalizacion en tiempo real de direcciones MAC (auto-completado de dos puntos y conversion a formato hexadecimal en mayusculas).
-   - Comprobacion dinamica de coincidencia de contraseñas.
-
-2. **Capa Back-End (Servicios y Validadores Python)**:
-   - Validacion estricta contra estandares RFC 1918 mediante el modulo nativo `ipaddress`.
-   - Comprobacion de pertenencia a la subred administrada (por defecto `192.168.1.0/24`).
-   - Prevencion de colisiones de direccionamiento IP y duplicidad de identificadores MAC en la capa de servicio.
-   - Validacion de coherencia temporal en politicas (fechas de inicio menores a fechas de termino, comprobacion de horas que cruzan la medianoche).
-
-3. **Capa de Base de Datos (Motor MySQL 8.0+)**:
-   - Restricciones DDL de unicidad `UNIQUE(ip_address, network_scope)` y `UNIQUE(mac_address)`.
-   - Restricciones de verificacion `CHECK` a nivel de tabla para roles, estados administrativos y tipos de asignacion.
-   - Integridad referencial con claves foraneas y eliminacion en cascada (`ON DELETE CASCADE`) para politicas y horarios vinculados.
+### 3.6. Adaptador de Router, Auditoria y Diseno Movil
+- **Patron Adapter (`app/services/router_adapter.py`)**: Separa estrictamente la gestion en base de datos MySQL de la capa de comunicacion con router (`LabSimulatorRouterAdapter` y `PassiveNullRouterAdapter`), distinguiendo entre registros en BD, simulacion de laboratorio y aplicacion fisica real.
+- **Bitacora Inmutable de Auditoria (`/audit`)**: Registra altas, cambios de estado, evaluaciones en vivo, escaneos de red y exportacion a CSV redactando cualquier credencial sensible.
+- **Interfaz Responsiva Adaptada a Telefono**: Incluye barra inferior fija de navegacion tactil en dispositivos moviles (`< 1024px`), vista de tarjetas sin desplazamiento horizontal en lugar de tablas anchas en pantallas pequenas y controles compatibles con pantallas tactiles.
 
 ---
 
-## 5. Estructura del Arbol de Archivos
+## 4. Guia Rapida para Demostracion en Tiempo Real con Mini-Modem y Telefono
+
+Para presentar evidencia en tiempo real fuera de casa usando un mini-modem portatil con chip telefonico (o hotspot Wi-Fi):
+
+1. **Conectar la PC y los telefonos**: Conecte la laptop donde corre el servidor y los telefonos de prueba a la misma red Wi-Fi emitida por el mini-modem.
+2. **Permitir trafico local en Windows Firewall (una sola vez)**: Al iniciar la aplicacion en la red nueva del mini-modem, seleccione la red como Privada o ejecute en PowerShell como Administrador:
+   ```powershell
+   New-NetFirewallRule -DisplayName "NetGuard Home IP Puerto 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Private,Public
+   ```
+3. **Arrancar el sistema**: Ejecute `INICIAR_SISTEMA.bat` o `py run.py`. El servidor escucha en todas las interfaces (`0.0.0.0:5000`) e imprime en consola la URL exacta de red Wi-Fi (ejemplo: `http://192.168.8.100:5000`).
+4. **Abrir desde tu telefono (sin estar en la PC)**: En el panel lateral entre a **Monitor en Vivo** y escanee el primer **Codigo QR** con la camara de su telefono para operar el sistema de manera tactil.
+5. **Escaneo y prueba en tiempo real**:
+   - Presione **Escanear Mini-Modem / Wi-Fi** para descubrir en vivo los telefonos conectados con su IP y MAC reales.
+   - Si el mini-modem usa una subred distinta a `192.168.1.0/24` (por ejemplo `192.168.8.0/24`), presione **Adaptar Sistema a Subred** o registre directamente el equipo desde la tarjeta detectada.
+   - En un segundo telefono, escanee el segundo QR (`/network/mi-acceso`) y observe como al pausar, bloquear o activar intermitencia desde su celular, la pantalla del segundo telefono y los registros de MySQL reflejan el cambio en vivo junto con las pruebas reales de latencia Ping ICMP.
+
+---
+
+## 5. Estructura del Proyecto (Para que Sirve Cada Archivo)
 
 ```text
-NetGuard/
+TESISAVANCE/
+|-- run.py                              Punto de entrada HTTP del servidor Flask (escucha LAN 0.0.0.0:5000)
+|-- config.py                           Configuracion por entornos, carga de .env y sanitizacion de URIs
+|-- INICIAR_SISTEMA.bat                 Lanzador rapido en Windows con arranque del servidor y navegador
+|-- requirements.txt                    Dependencias base de Python requeridas por la plataforma
+|-- database/
+|   `-- schema.sql                      Script DDL definitivo para MySQL 8.0+ (crea red_domestica_tesis)
 |-- app/
-|   |-- models/                     Modelos relacionales con SQLAlchemy
-|   |   |-- __init__.py             Exportacion centralizada de modelos y cargador de sesion
-|   |   |-- audit.py                Entidad AuditLog (registro inmutable de trazabilidad)
-|   |   |-- category.py             Entidad SystemCategory (tipos, perfiles y destinos dinamicos)
-|   |   |-- device.py               Entidad Device (datos tecnicos e identificadores de red)
-|   |   |-- policy.py               Entidad AccessPolicy (reglas, intermediario e intermitencia)
-|   |   |-- router_event.py         Entidad RouterSyncLog (bitacora de directivas al router)
-|   |   |-- schedule.py             Entidad AccessSchedule (ventanas horarias y dias semanales)
-|   |   `-- user.py                 Entidad User (superadmin, admin, operator, auditor)
-|   |-- routes/                     Controladores HTTP modulares (Flask Blueprints)
-|   |   |-- __init__.py             Registro de blueprints en la factoria de aplicacion
-|   |   |-- audit.py                Consulta y exportacion CSV de bitacoras de seguridad
-|   |   |-- auth.py                 Inicio y cierre de sesion con proteccion CSRF
-|   |   |-- categories.py           Endpoint para alta rapida de categorias dinamicas
-|   |   |-- dashboard.py            Metricas globales, distribucion de perfiles y estados
-|   |   |-- decorators.py           Decoradores de seguridad (@admin_required, @superadmin_required)
-|   |   |-- devices.py              CRUD, Ficha Tecnica unificada y Control Familiar
-|   |   |-- policies.py             Gestion de politicas de acceso e intermediario
-|   |   |-- schedules.py            Programacion y evaluacion de horarios semanales
-|   |   |-- settings.py             Ajustes de subred, diagnostico de base de datos y simulador
-|   |   `-- users.py                Administracion de cuentas del sistema y asignacion de roles
-|   |-- services/                   Capa logica de negocio y validaciones de red
-|   |   |-- audit_service.py        Registro estructurado y sanitizado de eventos
-|   |   |-- category_service.py     Consultas y creacion de categorias dinamicas
-|   |   |-- dashboard_service.py    Calculo de metricas en tiempo real
-|   |   |-- demo_seed_service.py    Carga idempotente de datos controlados de demostracion
-|   |   |-- device_service.py       Reglas de negocio para alta, edicion y baja de dispositivos
-|   |   |-- policy_service.py       Logica de expiracion y deteccion de contradicciones
-|   |   |-- router_adapter.py       Patron Adapter: Simulador de Laboratorio y Modo Pasivo
-|   |   |-- schedule_service.py     Evaluacion de cruce de medianoche y ventanas activas
-|   |   |-- user_service.py         Hash seguro PBKDF2 y jerarquia de administracion de usuarios
-|   |   `-- validators.py           Validadores de IP RFC 1918, MAC, hostname y coherencia
-|   |-- static/                     Recursos del lado del cliente
-|   |   |-- css/app.css             Estilos responsivos sin fatiga visual (temas claro y oscuro)
-|   |   `-- js/app.js               Control de pestañas, validadores reactivos y modales
-|   |-- templates/                  Vistas semanticas en HTML5 y Tailwind CSS
-|   |   |-- base.html               Plantilla base con navegacion lateral y pie de pagina
-|   |   |-- components/             Componentes reutilizables (modales, macros de iconos)
-|   |   |-- devices/                Vistas de dispositivos (listado, formulario y ficha tecnica)
-|   |   |-- policies/               Vistas de politicas e intermediario de conexion
-|   |   |-- schedules/              Vistas de horarios semanales con selector de dias
-|   |   |-- settings/               Panel de diagnostico de enlace SQL y modo de simulador
-|   |   `-- users/                  Vistas de administracion de usuarios y asignacion de roles
-|   |-- extensions.py               Inicializacion desacoplada de SQLAlchemy, Login y CSRF
-|   `-- __init__.py                 Application Factory con cabeceras de seguridad HTTP
-|-- database/                       Scripts DDL para MySQL Workbench y migraciones
-|   |-- schema.sql                  Esquema relacional completo con tablas y restricciones
-|   `-- schema_avance1.sql          Script relacional enfocado para evaluacion tecnica
-|-- tests/                          Bateria completa de pruebas automatizadas
-|   |-- conftest.py                 Fixtures de prueba con base de datos aislada en memoria
-|   |-- test_audit_and_db_errors.py Pruebas de trazabilidad y tolerancia a fallos
-|   |-- test_auth.py                Pruebas de sesiones, contraseñas y proteccion CSRF
-|   |-- test_devices.py             Pruebas de validacion IP, MAC y prevencion de duplicados
-|   |-- test_policies.py            Pruebas de politicas, vigencias y contradicciones
-|   |-- test_relatoria_enhancements.py Pruebas de roles, categorias dinamicas e intermediario
-|   |-- test_schedules.py           Pruebas de ventanas horarias y cruce de medianoche
-|   `-- test_views_and_seed.py      Pruebas de flujo web y carga de datos de laboratorio
-|-- config.py                       Configuracion por entornos (Development, Testing, Production)
-|-- INICIAR_SISTEMA.bat             Script ejecutable de Windows para arranque en un clic
-|-- requirements.txt                Listado de bibliotecas requeridas
-`-- run.py                          Punto de entrada de ejecucion del servidor Flask
+|   |-- __init__.py                     Application Factory, cabeceras de seguridad, manejadores HTTP y CLI
+|   |-- extensions.py                   Instancias de SQLAlchemy, Flask-Login, Migrate y proteccion CSRF
+|   |-- models/
+|   |   |-- __init__.py                 Exportacion de modelos y cargador de usuarios de sesion
+|   |   |-- user.py                     Modelo User con roles RBAC y hash seguro de contrasenas
+|   |   |-- category.py                 Modelo SystemCategory para catalogos extensibles dinamicos
+|   |   |-- device.py                   Modelo Device (IP, MAC, ambito CIDR, perfil y estado de acceso)
+|   |   |-- policy.py                   Modelo AccessPolicy (vigencias, prioridad e intermitencia)
+|   |   |-- schedule.py                 Modelo AccessSchedule (horarios semanales, medianoche y globales)
+|   |   |-- router_event.py             Modelo RouterSyncLog (historial tecnico de directivas generadas)
+|   |   `-- audit.py                    Modelo AuditLog (trazabilidad cronologica de seguridad)
+|   |-- routes/
+|   |   |-- __init__.py                 Registro centralizado de los 10 blueprints de la aplicacion
+|   |   |-- decorators.py               Guardias de autorizacion (@write_permission_required, @admin_required, @superadmin_required)
+|   |   |-- auth.py                     Autenticacion de usuarios y gestion de sesiones
+|   |   |-- dashboard.py                Panel principal con metricas y accesos rapidos
+|   |   |-- devices.py                  CRUD de dispositivos, Ficha Unificada y Control Familiar
+|   |   |-- network.py                  Monitor en Vivo, escaneo ARP/ICMP, ping real y portal /mi-acceso
+|   |   |-- policies.py                 Gestion de politicas de acceso e intermediario de trafico
+|   |   |-- schedules.py                Administracion y evaluador de horarios individuales y globales
+|   |   |-- categories.py               Endpoint AJAX/POST para creacion dinamica de categorias
+|   |   |-- users.py                    Administracion de cuentas familiares y roles
+|   |   |-- audit.py                    Consulta filtrada y exportacion CSV de bitacoras
+|   |   `-- settings.py                 Diagnostico de MySQL, carga/limpieza demo y modo de adaptador
+|   |-- services/
+|   |   |-- network_probe_service.py    Deteccion de interfaz Wi-Fi/mini-modem, QR SVG, ARP, Ping ICMP y evaluacion en vivo
+|   |   |-- device_service.py           Logica de negocio y unicidad IP/MAC por ambito de red
+|   |   |-- policy_service.py           Validacion de intervalos, expiracion automatica y contradicciones
+|   |   |-- schedule_service.py         Gestion de horarios globales/individuales y calculo de ventanas
+|   |   |-- router_adapter.py           Patron Adapter (Simulador de Laboratorio vs Modo Pasivo)
+|   |   |-- category_service.py         Inicializacion y registro de categorias dinamicas del sistema
+|   |   |-- user_service.py             Creacion/edicion de usuarios con validacion jerarquica de roles
+|   |   |-- audit_service.py            Registro sanitizado de eventos de auditoria y redaccion de secretos
+|   |   |-- dashboard_service.py        Agregacion de estadisticas y proximas ventanas horarias
+|   |   |-- demo_seed_service.py        Generador idempotente de datos demostrativos marcados con is_demo
+|   |   `-- validators.py               Validadores estrictos RFC 1918 (IP, CIDR, MAC, hostnames y tiempos)
+|   |-- static/
+|   |   |-- css/app.css                 Temas Claro/Oscuro, componente IP segmentado, tablas y barra tactil movil
+|   |   `-- js/app.js                   Validadores en vivo, menus hamburguesa, escaneo AJAX y auto-refresco movil
+|   `-- templates/                      Vistas HTML5 Jinja2 responsivas (escritorio + tarjetas moviles)
+`-- tests/                              Suite de 27 pruebas automatizadas con Pytest sobre BD en memoria
 ```
 
 ---
 
-## 6. Instalacion y Puesta en Marcha
+## 6. Instalacion, Base de Datos y Verificacion
 
-### Requisitos Previos
-- Python 3.10 o superior (compatible con Python 3.14).
-- Servidor de base de datos MySQL 8.0 o MariaDB 10.5 en ejecucion local.
-- Navegador web moderno (Edge, Chrome, Firefox).
-
-### Paso 1: Clonar el Repositorio
-```bash
-git clone https://github.com/GITALETS/NetGuard.git
-cd NetGuard
-```
-
-### Paso 2: Configurar el Entorno Virtual de Python
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-### Paso 3: Instalar Dependencias
-```bash
-pip install -r requirements.txt
-```
-
-### Paso 4: Inicializar la Base de Datos en MySQL
-1. Abra su cliente de base de datos (por ejemplo, **MySQL Workbench**).
-2. Abra y ejecute el script relacional localizado en [`database/schema.sql`](file:///C:/Users/T14%20R7/OneDrive/Escritorio/TESISAVANCE/database/schema.sql).
-3. Este script creara la base de datos `red_domestica_tesis` con todas las tablas, claves foraneas e indices requeridos.
-
-### Paso 5: Configurar Variables de Entorno
-Cree un archivo `.env` en la raiz del proyecto con los siguientes parametros:
+### Base de Datos Activa Requerida
+El sistema utiliza exclusivamente la base de datos **`red_domestica_tesis`** configurada en `.env`:
 ```ini
-FLASK_APP=run.py
-FLASK_ENV=development
-FLASK_DEBUG=1
-SECRET_KEY=clave_secreta_de_prueba_local_2026
 DATABASE_URL=mysql+pymysql://root:TU_PASSWORD@localhost:3306/red_domestica_tesis
-DEFAULT_NETWORK_SCOPE=192.168.1.0/24
-DEFAULT_GATEWAY_IP=192.168.1.1
+```
+Para crear o restaurar el esquema desde cero en MySQL 8.0+, ejecute [`database/schema.sql`](database/schema.sql).
+
+### Ejecucion Local
+```powershell
+pip install -r requirements.txt
+py run.py
 ```
 
-### Paso 6: Ejecutar la Aplicacion
-Puede arrancar el sistema ejecutando directamente el script por lotes [`INICIAR_SISTEMA.bat`](file:///C:/Users/T14%20R7/OneDrive/Escritorio/TESISAVANCE/INICIAR_SISTEMA.bat) con doble clic, o mediante terminal:
-```bash
-python run.py
+### Pruebas Automatizadas
+Todas las pruebas corren de forma aislada sobre SQLite en memoria sin alterar los registros reales de MySQL:
+```powershell
+py -3.14 -m pytest -v
 ```
-
-La interfaz estara disponible inmediatamente en: **`http://127.0.0.1:5000`**
-
----
-
-## 7. Verificacion de Pruebas Automatizadas
-
-El proyecto incluye 23 pruebas automatizadas unitarias y de integracion que se ejecutan sobre una base de datos SQLite en memoria aislada, garantizando que el entorno de desarrollo y los datos reales de MySQL no sean alterados durante las pruebas:
-
-```bash
-pytest -v
-```
-
-Resultado verificado:
-```text
-tests/test_audit_and_db_errors.py ........ PASSED
-tests/test_auth.py ....................... PASSED
-tests/test_devices.py .................... PASSED
-tests/test_policies.py .................. PASSED
-tests/test_relatoria_enhancements.py ..... PASSED
-tests/test_schedules.py ................. PASSED
-tests/test_views_and_seed.py ............. PASSED
-
-============================= 23 passed in 6.40s =============================
-```
+Resultado verificado: **27 passed** cubriendo autenticacion, RBAC, validacion IP/MAC, politicas con intermitencia, horarios globales con exclusion de equipos bloqueados, deteccion de red, portal en vivo y vistas HTTP.

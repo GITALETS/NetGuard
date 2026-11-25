@@ -137,11 +137,11 @@
           />
           <span class="text-sm font-semibold theme-text-primary">Activar Intermitencia de Accesos (Control por Intervalos / Modo Descanso)</span>
         </label>
-        <p class="text-xs theme-text-muted mt-1 ml-6">
+        <p class="text-xs theme-text-muted mt-1 ml-0 sm:ml-6">
           Modula la conexión en ciclos continuos (ej. 30 minutos de acceso seguido de 15 minutos de descanso de pantalla o estudio).
         </p>
 
-        <div id="intermittent_settings" class="{% if not form_data.get('is_intermittent') and form_data.get('policy_type') != 'intermittent_intermediary' %}hidden{% endif %} grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 ml-6 pt-2 border-t border-slate-800">
+        <div id="intermittent_settings" class="{% if not form_data.get('is_intermittent') and form_data.get('policy_type') != 'intermittent_intermediary' %}hidden{% endif %} grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 ml-0 sm:ml-6 pt-2 border-t border-slate-800">
           <div>
             <label for="interval_active_minutes" class="block text-xs font-semibold theme-text-secondary mb-1">
               Minutos de conexión permitida
