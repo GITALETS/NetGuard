@@ -41,7 +41,7 @@
     </div>
 
     <!-- Identificación del dispositivo detectado -->
-    <div id="device-identity-box">
+    <div id="device-identity-box" data-has-device="{{ 'true' if evaluation.device else 'false' }}">
       {% if evaluation.device %}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div class="surface-subtle p-3">
@@ -56,8 +56,25 @@
           </div>
         </div>
       {% else %}
-        <div class="surface-subtle p-3.5 text-xs theme-text-secondary">
-          Tu dirección IP actual (<code class="font-mono-code">{{ client_ip }}</code>) aún no está registrada en NetGuard. Un administrador o el operador puede registrarla en 1 clic desde el Monitor de Red.
+        <div class="surface-subtle p-3.5 text-xs theme-text-secondary space-y-2.5">
+          <div>
+            Tu dirección IP actual (<code class="font-mono-code">{{ client_ip }}</code>) aún no está registrada en NetGuard. Un administrador o el operador puede registrarla en 1 clic desde el Monitor de Red.
+          </div>
+          {% if current_user.is_authenticated and current_user.can_modify and devices %}
+            <form method="POST" action="{{ url_for('network.assign_ip_to_saved_device') }}" class="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input type="hidden" name="ip_address" value="{{ target_ip }}" />
+              <input type="hidden" name="return_to" value="client_status" />
+              <select name="device_id" class="form-select-dark text-xs py-1.5 px-2.5 flex-1">
+                {% for d in devices %}
+                  <option value="{{ d.id }}">Este equipo es: {{ d.name }} (tenía {{ d.ip_address }})</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn-primary text-xs py-1.5 px-3 shrink-0">
+                Vincular mi IP actual
+              </button>
+            </form>
+          {% endif %}
         </div>
       {% endif %}
     </div>

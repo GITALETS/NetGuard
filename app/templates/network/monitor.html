@@ -122,20 +122,39 @@
             </div>
           </div>
 
-          <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-            <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="{{ host.ip_address }}">
-              Verificar Señal
-            </button>
-            {% if host.registered_device and not host.is_this_server %}
-              <a href="{{ url_for('devices.detail', device_id=host.registered_device.id, tab='family' if current_user.can_modify else 'ficha') }}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">
-                {% if current_user.can_modify %}Controlar Internet{% else %}Ver Ficha{% endif %}
-              </a>
-            {% elif host.is_this_server %}
-              <span class="text-[11px] theme-text-muted px-2 py-1">Servidor NetGuard</span>
-            {% elif current_user.can_modify and not host.is_gateway %}
-              <a href="{{ url_for('devices.create', ip=host.ip_address, mac=host.mac_address or '', hostname=host.hostname or '', scope=net_info.network_scope, name=host.suggested_name, device_type=host.suggested_type) }}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">
-                + Registrar Equipo
-              </a>
+          <div class="pt-2 border-t border-slate-800/80 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="{{ host.ip_address }}">
+                Verificar Señal
+              </button>
+              {% if host.registered_device and not host.is_this_server %}
+                <a href="{{ url_for('devices.detail', device_id=host.registered_device.id, tab='family' if current_user.can_modify else 'ficha') }}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">
+                  {% if current_user.can_modify %}Controlar Internet{% else %}Ver Ficha{% endif %}
+                </a>
+              {% elif host.is_this_server %}
+                <span class="text-[11px] theme-text-muted px-2 py-1">Servidor NetGuard</span>
+              {% elif current_user.can_modify and not host.is_gateway %}
+                <a href="{{ url_for('devices.create', ip=host.ip_address, mac=host.mac_address or '', hostname=host.hostname or '', scope=net_info.network_scope, name=host.suggested_name, device_type=host.suggested_type) }}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">
+                  + Registrar Nuevo
+                </a>
+              {% endif %}
+            </div>
+
+            {% if not host.registered_device and not host.is_this_server and not host.is_gateway and current_user.can_modify and devices %}
+              <form method="POST" action="{{ url_for('network.assign_ip_to_saved_device') }}" class="pt-1.5 border-t border-slate-800/60 flex items-center gap-1.5">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="ip_address" value="{{ host.ip_address }}" />
+                <input type="hidden" name="mac_address" value="{{ host.mac_address or '' }}" />
+                <input type="hidden" name="network_scope" value="{{ net_info.network_scope }}" />
+                <select name="device_id" class="form-select-dark text-[11px] py-1 px-2 flex-1 min-w-0" aria-label="Vincular IP a equipo guardado">
+                  {% for saved_dev in devices %}
+                    <option value="{{ saved_dev.id }}">Es: {{ saved_dev.name }} ({{ saved_dev.ip_address }})</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn-secondary text-[11px] py-1 px-2.5 shrink-0" title="Actualizar la IP del equipo guardado con esta IP">
+                  Vincular IP
+                </button>
+              </form>
             {% endif %}
           </div>
         </div>

@@ -181,6 +181,41 @@ def test_network_routes_and_mobile_client_portal(client, auth_client, monkeypatc
     assert "192.168.8.0/24" in prefill_html
     assert "Celular Invitado" in prefill_html
 
+    # Reasignación rápida en 1 clic (/network/assign-ip) cuando un equipo guardado cambia de IP en otra red
+    with auth_client.application.app_context():
+        saved = create_device(
+            {
+                "name": "Celular Viajero",
+                "ip_address": "192.168.1.50",
+                "network_scope": "192.168.1.0/24",
+                "device_type": "smartphone",
+                "admin_status": "authorized",
+            }
+        )
+        saved_id = saved.id
+
+    assign_resp = auth_client.post(
+        "/network/assign-ip",
+        data={
+            "csrf_token": csrf_token,
+            "device_id": str(saved_id),
+            "ip_address": "172.20.10.6",
+            "mac_address": "AA:BB:CC:11:22:33",
+            "network_scope": "172.20.10.0/28",
+        },
+        follow_redirects=True,
+    )
+    assert assign_resp.status_code == 200
+    assert "ahora está vinculado a la IP 172.20.10.6" in assign_resp.get_data(as_text=True)
+    with auth_client.application.app_context():
+        from app.extensions import db
+        from app.models.device import Device
+
+        updated_saved = db.session.get(Device, saved_id)
+        assert updated_saved.ip_address == "172.20.10.6"
+        assert updated_saved.network_scope == "172.20.10.0/28"
+        assert updated_saved.mac_address == "AA:BB:CC:11:22:33"
+
 
 def test_intermediary_proxy_decision_engine(app, auth_client):
     """Verifica las decisiones reales del Proxy Intermediario por IP, Modo Estudio, Bloqueo e Intermitencia."""

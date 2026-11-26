@@ -1428,7 +1428,10 @@ function initLiveNetworkMonitor() {
                 : '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 theme-text-secondary">Nuevo en Wi-Fi</span>';
 
               const canModify = grid.getAttribute("data-can-modify") === "true";
+              const savedDevices = data.saved_devices || [];
+              const csrfVal = _getCsrfToken();
               let actionLink = "";
+              let quickAssignForm = "";
               if (host.registered_device && !host.is_this_server) {
                 const devHref = canModify
                   ? `/devices/${encodeURIComponent(host.registered_device.id)}?tab=family`
@@ -1448,7 +1451,27 @@ function initLiveNetworkMonitor() {
                   name: host.suggested_name || "",
                   device_type: host.suggested_type || "smartphone",
                 });
-                actionLink = `<a href="/devices/new?${params.toString()}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">+ Registrar Equipo</a>`;
+                actionLink = `<a href="/devices/new?${params.toString()}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">+ Registrar Nuevo</a>`;
+                if (savedDevices.length) {
+                  const opts = savedDevices
+                    .map(
+                      (sd) =>
+                        `<option value="${_escapeHtml(sd.id)}">Es: ${_escapeHtml(sd.name)} (${_escapeHtml(sd.ip_address)})</option>`,
+                    )
+                    .join("");
+                  quickAssignForm = `
+                    <form method="POST" action="/network/assign-ip" class="pt-1.5 border-t border-slate-800/60 flex items-center gap-1.5">
+                      <input type="hidden" name="csrf_token" value="${_escapeHtml(csrfVal)}" />
+                      <input type="hidden" name="ip_address" value="${_escapeHtml(host.ip_address)}" />
+                      <input type="hidden" name="mac_address" value="${_escapeHtml(host.mac_address || "")}" />
+                      <input type="hidden" name="network_scope" value="${_escapeHtml(netScope)}" />
+                      <select name="device_id" class="form-select-dark text-[11px] py-1 px-2 flex-1 min-w-0">
+                        ${opts}
+                      </select>
+                      <button type="submit" class="btn-secondary text-[11px] py-1 px-2.5 shrink-0">Vincular IP</button>
+                    </form>
+                  `;
+                }
               }
 
               return `
@@ -1466,9 +1489,12 @@ function initLiveNetworkMonitor() {
                       <div class="flex flex-wrap gap-1.5 pt-0.5">${roleTag}${dbTag}</div>
                     </div>
                   </div>
-                  <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-                    <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="${_escapeHtml(host.ip_address)}">Verificar Señal</button>
-                    ${actionLink}
+                  <div class="pt-2 border-t border-slate-800/80 space-y-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="${_escapeHtml(host.ip_address)}">Verificar Señal</button>
+                      ${actionLink}
+                    </div>
+                    ${quickAssignForm}
                   </div>
                 </div>
               `;
@@ -1623,6 +1649,7 @@ function initClientLiveStatusPoller() {
 
       if (identityBoxEl) {
         if (data.device) {
+          identityBoxEl.dataset.hasDevice = "true";
           identityBoxEl.innerHTML = `
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div class="surface-subtle p-3">
@@ -1637,7 +1664,8 @@ function initClientLiveStatusPoller() {
               </div>
             </div>
           `;
-        } else {
+        } else if (identityBoxEl.dataset.hasDevice === "true") {
+          identityBoxEl.dataset.hasDevice = "false";
           identityBoxEl.innerHTML = `
             <div class="surface-subtle p-3.5 text-xs theme-text-secondary">
               Tu dirección IP actual (<code class="font-mono-code">${_escapeHtml(data.ip_address || "")}</code>) aún no está registrada en NetGuard. Un administrador o el operador puede registrarla en 1 clic desde el Monitor de Red.

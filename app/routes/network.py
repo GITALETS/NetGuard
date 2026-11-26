@@ -13,7 +13,7 @@ from app.extensions import db
 from app.models.device import Device
 from app.routes.decorators import write_permission_required
 from app.services.audit_service import log_audit_event
-from app.services.intermediary_proxy import get_proxy_status
+from app.services.intermediary_proxy import bump_proxy_policy_version, get_proxy_status
 from app.services.network_probe_service import (
     build_wifi_qr_svg,
     detect_local_network_info,
@@ -21,7 +21,13 @@ from app.services.network_probe_service import (
     ping_host,
     scan_active_network,
 )
-from app.services.validators import ValidationError, validate_and_normalize_ip, validate_network_scope
+from app.services.router_adapter import execute_device_router_sync
+from app.services.validators import (
+    ValidationError,
+    validate_and_normalize_ip,
+    validate_and_normalize_mac,
+    validate_network_scope,
+)
 
 network_bp = Blueprint("network", __name__, url_prefix="/network")
 
@@ -114,6 +120,10 @@ def proxy_pac():
 def scan():
     """Ejecuta un escaneo completo (barrido ICMP + caché ARP) sobre la red Wi-Fi activa."""
     result = scan_active_network(include_ping_sweep=True)
+    saved_devices = [
+        {"id": d.id, "name": d.name, "ip_address": d.ip_address}
+        for d in Device.query.order_by(Device.is_demo.asc(), Device.name.asc()).all()
+    ]
     if current_user.can_modify:
         log_audit_event(
             event_type="NETWORK_LIVE_SCAN",
@@ -131,7 +141,105 @@ def scan():
             },
             commit=True,
         )
-    return jsonify({"success": True, **result})
+    return jsonify({"success": True, "saved_devices": saved_devices, **result})
+
+
+@network_bp.route("/assign-ip", methods=["POST"])
+@login_required
+@write_permission_required
+def assign_ip_to_saved_device():
+    """
+    Vincula en 1 clic una nueva dirección IP (y MAC/subred detectada al cambiar de Wi-Fi o Hotspot)
+    a un dispositivo ya registrado, conservando sus horarios, permisos e historial.
+    """
+    device_id_raw = (request.form.get("device_id") or "").strip()
+    ip_raw = (request.form.get("ip_address") or "").strip()
+    mac_raw = (request.form.get("mac_address") or "").strip()
+    scope_raw = (request.form.get("network_scope") or "").strip()
+    return_to = (request.form.get("return_to") or "monitor").strip()
+    redirect_url = (
+        url_for("network.client_status", ip=ip_raw)
+        if return_to == "client_status"
+        else url_for("network.monitor")
+    )
+
+    if not device_id_raw.isdigit():
+        flash("Selecciona un equipo guardado válido para vincular la dirección IP.", "error")
+        return redirect(redirect_url)
+
+    device = db.get_or_404(Device, int(device_id_raw))
+    net_info = detect_local_network_info()
+    target_scope = scope_raw or net_info.get("network_scope") or "192.168.1.0/24"
+
+    try:
+        ip_clean = validate_and_normalize_ip(ip_raw)
+        try:
+            scope_clean = validate_network_scope(target_scope)
+            validate_and_normalize_ip(ip_clean, network_scope=scope_clean)
+        except ValidationError:
+            parts = ip_clean.split(".")
+            scope_clean = f"{parts[0]}.{parts[1]}.{parts[2]}.0/24"
+    except ValidationError as exc:
+        flash(str(exc), "error")
+        return redirect(redirect_url)
+
+    conflict = Device.query.filter(Device.ip_address == ip_clean, Device.id != device.id).first()
+    if conflict:
+        flash(
+            f"La dirección IP {ip_clean} ya está asignada a '{conflict.name}'. "
+            "Cambia o quita primero ese equipo si deseas reasignarla.",
+            "error",
+        )
+        return redirect(redirect_url)
+
+    old_ip = device.ip_address
+    old_scope = device.network_scope
+    device.ip_address = ip_clean
+    device.network_scope = scope_clean
+
+    if mac_raw:
+        try:
+            mac_clean = validate_and_normalize_mac(mac_raw)
+            if mac_clean:
+                mac_conflict = Device.query.filter(
+                    Device.mac_address == mac_clean,
+                    Device.id != device.id,
+                ).first()
+                if not mac_conflict:
+                    device.mac_address = mac_clean
+        except ValidationError:
+            pass
+
+    db.session.commit()
+    bump_proxy_policy_version()
+    execute_device_router_sync(device, triggered_by_id=current_user.id, commit=True)
+
+    log_audit_event(
+        event_type="DEVICE_IP_REASSIGNED",
+        module="devices",
+        description=(
+            f"Actualización rápida de IP para '{device.name}' ({device.internal_code}): "
+            f"{old_ip} ({old_scope}) -> {ip_clean} ({scope_clean})."
+        ),
+        severity="info",
+        user_id=current_user.id,
+        target_type="device",
+        target_id=device.id,
+        metadata={
+            "old_ip": old_ip,
+            "new_ip": ip_clean,
+            "old_scope": old_scope,
+            "new_scope": scope_clean,
+        },
+        commit=True,
+    )
+
+    flash(
+        f"Listo: '{device.name}' ahora está vinculado a la IP {ip_clean} en esta red Wi-Fi "
+        "(conservando sus permisos y horarios).",
+        "success",
+    )
+    return redirect(redirect_url)
 
 
 @network_bp.route("/ping", methods=["POST"])
