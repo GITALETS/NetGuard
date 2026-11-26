@@ -227,3 +227,24 @@ def test_intermediary_proxy_decision_engine(app, auth_client):
         assert evaluate_proxy_request("172.20.10.9", "www.google.com")["allowed"] is False
         assert evaluate_proxy_request("172.20.10.9", "es.wikipedia.org")["allowed"] is False
 
+
+def test_wifi_qr_generator_and_proxy_pac(auth_client, client):
+    """Verifica el endpoint de QR Wi-Fi estandar y la entrega de configuracion automatica PAC."""
+    pac_resp = client.get("/network/proxy.pac")
+    assert pac_resp.status_code == 200
+    assert "FindProxyForURL" in pac_resp.get_data(as_text=True)
+
+    mon_html = auth_client.get("/network/").get_data(as_text=True)
+    csrf_tok = extract_csrf_token(mon_html)
+    qr_resp = auth_client.post(
+        "/network/wifi-qr",
+        json={"ssid": "MiniModem_Tesis", "password": "ClaveSegura123", "security": "WPA"},
+        headers={"X-CSRFToken": csrf_tok},
+    )
+    assert qr_resp.status_code == 200
+    qr_data = qr_resp.get_json()
+    assert qr_data["success"] is True
+    assert qr_data["ssid"] == "MiniModem_Tesis"
+    assert "<svg" in qr_data["qr_svg"]
+
+

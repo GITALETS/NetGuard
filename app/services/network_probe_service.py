@@ -125,6 +125,52 @@ def _detect_primary_local_ip() -> str:
     return "127.0.0.1"
 
 
+def detect_active_wifi_ssid() -> Optional[str]:
+    """
+    Obtiene el nombre visible (SSID) de la red Wi-Fi activa en Windows (sin acceder a claves).
+    """
+    if platform.system() != "Windows":
+        return None
+    try:
+        proc = _run_hidden_cmd(["netsh", "wlan", "show", "interfaces"], timeout_sec=2.5)
+        for line in (proc.stdout or "").splitlines():
+            m = re.match(r"^\s*SSID\s*:\s*(.+)$", line, re.IGNORECASE)
+            if m:
+                ssid = m.group(1).strip()
+                if ssid:
+                    return ssid
+    except Exception:
+        pass
+    return None
+
+
+def _escape_wifi_qr_value(text: str) -> str:
+    """Escapa caracteres especiales segun el estandar QR Wi-Fi (\\ ; , \" :)."""
+    out = []
+    for ch in text:
+        if ch in ("\\", ";", ",", '"', ":"):
+            out.append(f"\\{ch}")
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def build_wifi_qr_svg(ssid: str, password: str = "", security: str = "WPA") -> Optional[str]:
+    """
+    Genera un codigo QR SVG estandar (`WIFI:T:WPA;S:<SSID>;P:<PASS>;;`) compatible con la
+    camara nativa de Android y iPhone para unirse al Wi-Fi sin teclear la contrasena.
+    """
+    clean_ssid = (ssid or "").strip()
+    if not clean_ssid:
+        return None
+    sec_norm = security if security in ("WPA", "WEP", "nopass") else "WPA"
+    if sec_norm == "nopass" or not password:
+        payload = f"WIFI:T:nopass;S:{_escape_wifi_qr_value(clean_ssid)};;"
+    else:
+        payload = f"WIFI:T:{sec_norm};S:{_escape_wifi_qr_value(clean_ssid)};P:{_escape_wifi_qr_value(password)};;"
+    return _generate_qr_svg(payload)
+
+
 def _inspect_windows_ipconfig(target_ip: str) -> Dict[str, Optional[str]]:
     """Extrae máscara de subred, puerta de enlace e interfaz de Windows para la IP local activa."""
     result: Dict[str, Optional[str]] = {
@@ -243,6 +289,7 @@ def detect_local_network_info(port: Optional[int] = None) -> Dict[str, Any]:
         "gateway_ip": gateway_ip,
         "ip_prefix": ip_prefix,
         "interface_name": interface_name,
+        "wifi_ssid": detect_active_wifi_ssid(),
         "server_hostname": socket.gethostname(),
         "port": resolved_port,
         "is_lan_reachable": local_ip != "127.0.0.1",

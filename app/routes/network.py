@@ -7,7 +7,7 @@ generar códigos QR de conexión móvil y consultar en tiempo real el estado de
 acceso efectivo aplicado por NetGuard a cada dirección IP.
 """
 
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, Response, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from app.extensions import db
 from app.models.device import Device
@@ -15,6 +15,7 @@ from app.routes.decorators import write_permission_required
 from app.services.audit_service import log_audit_event
 from app.services.intermediary_proxy import get_proxy_status
 from app.services.network_probe_service import (
+    build_wifi_qr_svg,
     detect_local_network_info,
     evaluate_live_device_access,
     ping_host,
@@ -56,6 +57,49 @@ def monitor():
 def proxy_logs():
     """Devuelve las ultimas conexiones evaluadas en vivo por el Proxy Intermediario."""
     return jsonify({"success": True, **get_proxy_status()})
+
+
+@network_bp.route("/wifi-qr", methods=["POST"])
+@login_required
+def wifi_qr():
+    """Genera un codigo QR estandar de conexion Wi-Fi sin almacenar ni registrar la contrasena."""
+    payload = request.get_json(silent=True) or request.form
+    ssid = (payload.get("ssid") or "").strip()
+    password = payload.get("password") or ""
+    security = (payload.get("security") or "WPA").strip()
+
+    if not ssid or len(ssid) > 64:
+        return jsonify({"success": False, "error": "Ingrese el nombre de la red Wi-Fi (SSID)."}), 400
+    if security != "nopass" and not password:
+        return jsonify({"success": False, "error": "Ingrese la contrasena del Wi-Fi o seleccione Sin contrasena."}), 400
+
+    svg = build_wifi_qr_svg(ssid=ssid, password=password, security=security)
+    if not svg:
+        return jsonify({"success": False, "error": "No fue posible generar el QR Wi-Fi."}), 500
+
+    return jsonify({"success": True, "ssid": ssid, "qr_svg": svg})
+
+
+@network_bp.route("/proxy.pac")
+def proxy_pac():
+    """
+    Entrega un archivo Proxy Auto-Config (PAC) estandar para configurar con una sola URL
+    el Intermediario Proxy en Android, iOS o equipos de la red sin tocar el portal local.
+    """
+    net_info = detect_local_network_info()
+    proxy_status = get_proxy_status()
+    local_ip = net_info["local_ip"]
+    proxy_port = proxy_status["port"]
+    pac_body = (
+        "function FindProxyForURL(url, host) {\n"
+        '  if (isPlainHostName(host) || shExpMatch(host, "127.*") || '
+        f'host == "localhost" || host == "{local_ip}") {{\n'
+        '    return "DIRECT";\n'
+        "  }\n"
+        f'  return "PROXY {local_ip}:{proxy_port}; DIRECT";\n'
+        "}\n"
+    )
+    return Response(pac_body, mimetype="application/x-ns-proxy-autoconfig")
 
 
 @network_bp.route("/scan", methods=["POST"])

@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Framework-Flask%203.x-black?style=flat-square&logo=flask&logoColor=white" alt="Flask">
   <img src="https://img.shields.io/badge/Base%20de%20Datos-MySQL%208.0%2B-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL">
-  <img src="https://img.shields.io/badge/Pruebas-28%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
+  <img src="https://img.shields.io/badge/Pruebas-29%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
   <img src="https://img.shields.io/badge/Licencia-Proyecto%20de%20Tesis-lightgrey?style=flat-square" alt="Licencia">
 </p>
 
@@ -145,7 +145,7 @@ TESISAVANCE/
 |   |   |-- css/app.css                 Temas Claro/Oscuro, componente IP segmentado, tablas y barra tactil movil
 |   |   `-- js/app.js                   Validadores en vivo, menus hamburguesa, escaneo AJAX y auto-refresco movil
 |   `-- templates/                      Vistas HTML5 Jinja2 responsivas (escritorio + tarjetas moviles)
-`-- tests/                              Suite de 28 pruebas automatizadas con Pytest sobre BD en memoria
+`-- tests/                              Suite de 29 pruebas automatizadas con Pytest sobre BD en memoria
 ```
 
 ---
@@ -170,4 +170,4 @@ Todas las pruebas corren de forma aislada sobre SQLite en memoria sin alterar lo
 ```powershell
 py -3.14 -m pytest -v
 ```
-Resultado verificado: **28 passed** cubriendo autenticacion, RBAC, validacion IP/MAC, politicas con intermitencia, horarios globales con exclusion de equipos bloqueados, deteccion de red, intermediario proxy real y vistas HTTP.
+Resultado verificado: **29 passed** cubriendo autenticacion, RBAC, validacion IP/MAC, politicas con intermitencia, horarios globales con exclusion de equipos bloqueados, deteccion de red, QR Wi-Fi, intermediario proxy real y vistas HTTP.

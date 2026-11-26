@@ -1149,6 +1149,44 @@ function initLiveNetworkMonitor() {
     };
     setInterval(refreshProxyLogs, 2500);
   }
+
+  // Generador de QR Wi-Fi sin guardar contrasena
+  const wifiQrForm = document.getElementById("wifi-qr-form");
+  const wifiQrPreview = document.getElementById("wifi-qr-preview-box");
+  const wifiQrError = document.getElementById("wifi-qr-error");
+  if (wifiQrForm && wifiQrPreview) {
+    wifiQrForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (wifiQrError) {
+        wifiQrError.classList.add("hidden");
+        wifiQrError.textContent = "";
+      }
+      const ssid = document.getElementById("wifi_qr_ssid")?.value.trim() || "";
+      const password = document.getElementById("wifi_qr_password")?.value || "";
+      const security = document.getElementById("wifi_qr_security")?.value || "WPA";
+
+      try {
+        const resp = await fetch("/network/wifi-qr", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": _getCsrfToken(),
+          },
+          body: JSON.stringify({ ssid, password, security }),
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.success) {
+          throw new Error(data.error || "No se pudo generar el QR.");
+        }
+        wifiQrPreview.innerHTML = data.qr_svg;
+      } catch (err) {
+        if (wifiQrError) {
+          wifiQrError.textContent = err.message || "Error al generar el QR Wi-Fi.";
+          wifiQrError.classList.remove("hidden");
+        }
+      }
+    });
+  }
 }
 
 /**
