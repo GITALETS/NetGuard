@@ -569,11 +569,14 @@ class _IntermediaryTCPHandler(socketserver.BaseRequestHandler):
             rebuilt_lines = [f"{method} {path} {version}"]
             for h_line in lines[1:]:
                 low = h_line.lower()
-                if low.startswith("proxy-connection:"):
+                if low.startswith("proxy-connection:") or low.startswith("connection:"):
                     continue
-                if low.startswith("connection:"):
+                if low.startswith("x-forwarded-for:") or low.startswith("x-real-ip:"):
                     continue
                 rebuilt_lines.append(h_line)
+            if host.lower() in server_ips and port == getattr(self.server, "flask_port", 5000):
+                rebuilt_lines.append(f"X-Forwarded-For: {client_ip}")
+                rebuilt_lines.append(f"X-Real-IP: {client_ip}")
             rebuilt_lines.append("Connection: close")
             outbound = ("\r\n".join(rebuilt_lines) + "\r\n\r\n").encode("latin-1") + rest_body
 

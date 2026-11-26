@@ -1266,12 +1266,14 @@ function initLiveNetworkMonitor() {
 
               const canModify = grid.getAttribute("data-can-modify") === "true";
               let actionLink = "";
-              if (host.registered_device) {
+              if (host.registered_device && !host.is_this_server) {
                 const devHref = canModify
                   ? `/devices/${encodeURIComponent(host.registered_device.id)}?tab=family`
                   : `/devices/${encodeURIComponent(host.registered_device.id)}`;
                 const devBtnLabel = canModify ? "Controlar Internet" : "Ver Ficha";
                 actionLink = `<a href="${devHref}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">${devBtnLabel}</a>`;
+              } else if (host.is_this_server) {
+                actionLink = `<span class="text-[11px] theme-text-muted px-2 py-1">Servidor NetGuard</span>`;
               } else if (canModify && !host.is_gateway) {
                 const params = new URLSearchParams({
                   ip: host.ip_address || "",
@@ -1411,7 +1413,9 @@ function initClientLiveStatusPoller() {
   const clockEl = document.getElementById("live-clock-badge");
   const bannerEl = document.getElementById("verdict-banner");
   const labelEl = document.getElementById("verdict-label");
+  const ipPillEl = document.getElementById("verdict-ip-pill");
   const reasonEl = document.getElementById("verdict-reason");
+  const identityBoxEl = document.getElementById("device-identity-box");
   const intBox = document.getElementById("intermittent-live-box");
   const intCountdown = document.getElementById("intermittent-countdown");
   const intPhaseLabel = document.getElementById("intermittent-phase-label");
@@ -1437,7 +1441,33 @@ function initClientLiveStatusPoller() {
       if (clockEl) clockEl.textContent = data.evaluated_at;
       if (bannerEl) bannerEl.className = colorClasses[data.verdict_color] || colorClasses.slate;
       if (labelEl) labelEl.textContent = data.verdict_label;
+      if (ipPillEl && data.ip_address) ipPillEl.textContent = `IP: ${data.ip_address}`;
       if (reasonEl) reasonEl.textContent = data.reason;
+
+      if (identityBoxEl) {
+        if (data.device) {
+          identityBoxEl.innerHTML = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="surface-subtle p-3">
+                <div class="theme-text-muted">Aparato Registrado</div>
+                <div class="font-bold text-sm theme-text-primary mt-0.5">${_escapeHtml(data.device.name)}</div>
+                <div class="theme-text-secondary mt-0.5">${_escapeHtml(data.device.owner_label)} &bull; ${_escapeHtml(data.device.profile_label)}</div>
+              </div>
+              <div class="surface-subtle p-3">
+                <div class="theme-text-muted">Identificadores</div>
+                <div class="font-mono-code font-semibold theme-text-primary mt-0.5">${_escapeHtml(data.device.internal_code)} &bull; ${_escapeHtml(data.device.mac_address)}</div>
+                <div class="theme-text-secondary mt-0.5">Estado BD: ${_escapeHtml(data.device.admin_status_label)}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          identityBoxEl.innerHTML = `
+            <div class="surface-subtle p-3.5 text-xs theme-text-secondary">
+              Tu dirección IP actual (<code class="font-mono-code">${_escapeHtml(data.ip_address || "")}</code>) aún no está registrada en NetGuard. Un administrador o el operador puede registrarla en 1 clic desde el Monitor de Red.
+            </div>
+          `;
+        }
+      }
 
       if (intBox) {
         if (data.intermittent_status) {

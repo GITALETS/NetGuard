@@ -28,8 +28,15 @@ network_bp = Blueprint("network", __name__, url_prefix="/network")
 
 def _resolve_client_ip() -> str:
     """Obtiene la dirección IP real del cliente HTTP que realiza la petición."""
-    forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-    return forwarded or request.remote_addr or "127.0.0.1"
+    remote = request.remote_addr or "127.0.0.1"
+    from app.services.intermediary_proxy import _get_dynamic_server_ips
+
+    trusted_locals = set(_get_dynamic_server_ips()) | {"127.0.0.1", "::1"}
+    if remote in trusted_locals:
+        forwarded = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        if forwarded:
+            return forwarded
+    return remote
 
 
 @network_bp.route("/")

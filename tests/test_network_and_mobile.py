@@ -130,6 +130,15 @@ def test_network_routes_and_mobile_client_portal(client, auth_client, monkeypatc
     assert api_resp.status_code == 200
     assert api_resp.get_json()["success"] is True
 
+    # Cuando el proxy local reenvia X-Forwarded-For desde localhost, debe respetarse la IP del telefono real
+    proxied_resp = client.get(
+        "/network/api/evaluate",
+        headers={"X-Forwarded-For": "192.168.1.77"},
+        environ_base={"REMOTE_ADDR": "127.0.0.1"},
+    )
+    assert proxied_resp.status_code == 200
+    assert proxied_resp.get_json()["ip_address"] == "192.168.1.77"
+
     # Monitor autenticado
     mon_resp = auth_client.get("/network/")
     assert mon_resp.status_code == 200

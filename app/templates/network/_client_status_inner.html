@@ -19,7 +19,7 @@
       {% else %}bg-slate-800/80 border-slate-700 text-slate-200{% endif %}">
       <div class="flex items-center justify-between gap-2 flex-wrap">
         <span id="verdict-label" class="text-base font-bold">{{ evaluation.verdict_label }}</span>
-        <span class="font-mono-code text-xs px-2 py-0.5 rounded bg-slate-900/60">IP: {{ evaluation.ip_address }}</span>
+        <span id="verdict-ip-pill" class="font-mono-code text-xs px-2 py-0.5 rounded bg-slate-900/60">IP: {{ evaluation.ip_address }}</span>
       </div>
       <p id="verdict-reason" class="text-xs sm:text-sm leading-relaxed">{{ evaluation.reason }}</p>
     </div>
