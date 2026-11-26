@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.extensions import db
 from app.models.device import Device
 from app.services.audit_service import log_audit_event
+from app.services.intermediary_proxy import bump_proxy_policy_version
 from app.services.validators import (
     ValidationError,
     validate_and_normalize_ip,
@@ -143,6 +144,7 @@ def create_device(
             },
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return device
     except IntegrityError as exc:
         db.session.rollback()
@@ -268,6 +270,7 @@ def update_device(
             metadata={"changes": changes, "current_ip": device.ip_address},
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return device
     except IntegrityError as exc:
         db.session.rollback()
@@ -297,6 +300,7 @@ def delete_device(device: Device, user_id: Optional[int] = None) -> None:
             metadata={"internal_code": code, "name": name, "ip_address": ip_addr},
         )
         db.session.commit()
+        bump_proxy_policy_version()
     except SQLAlchemyError as exc:
         db.session.rollback()
         raise ValidationError("Error de base de datos al intentar eliminar el dispositivo.") from exc

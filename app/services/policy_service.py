@@ -12,6 +12,7 @@ from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.user import utc_now_naive
 from app.services.audit_service import log_audit_event
+from app.services.intermediary_proxy import bump_proxy_policy_version
 from app.services.validators import ValidationError, validate_policy_temporal_rules
 
 
@@ -241,6 +242,7 @@ def create_policy(
             },
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return policy
     except SQLAlchemyError as exc:
         db.session.rollback()
@@ -361,6 +363,7 @@ def update_policy(
             },
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return policy
     except SQLAlchemyError as exc:
         db.session.rollback()
@@ -386,6 +389,7 @@ def delete_policy(policy: AccessPolicy, user_id: Optional[int] = None) -> None:
             metadata={"policy_name": pol_name, "device_code": dev_code},
         )
         db.session.commit()
+        bump_proxy_policy_version()
     except SQLAlchemyError as exc:
         db.session.rollback()
         raise ValidationError("Error de base de datos al eliminar la política.") from exc

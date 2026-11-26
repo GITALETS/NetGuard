@@ -28,11 +28,11 @@
       <div class="space-y-2.5 text-center sm:text-left min-w-0 flex-1">
         <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          Panel de Control en tu Celular
+          Para TU Celular (Con inicio de sesión)
         </div>
-        <h2 class="text-base font-bold theme-text-primary">Administra NetGuard desde el Teléfono</h2>
+        <h2 class="text-base font-bold theme-text-primary">Administra NetGuard desde tu Teléfono</h2>
         <p class="text-xs theme-text-secondary leading-relaxed">
-          Conecta tu teléfono al mismo Wi-Fi (módem o mini-módem portátil) y escanea este QR o ingresa esta dirección en Chrome/Safari:
+          Escanea este QR en <strong>tu teléfono</strong> para administrar la red sin estar en la PC. Pide tu usuario y contraseña de NetGuard una vez por seguridad (marca "Recordarme").
         </p>
         <div class="flex items-center gap-2 justify-center sm:justify-start">
           <code id="mobile-url-code" class="font-mono-code text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 text-cyan-300 border border-slate-700 select-all break-all">
@@ -54,11 +54,11 @@
       {% endif %}
       <div class="space-y-2.5 text-center sm:text-left min-w-0 flex-1">
         <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-700/60">
-          Prueba Multi-Dispositivo en Tiempo Real
+          Para Teléfono de Prueba (SIN contraseña)
         </div>
         <h2 class="text-base font-bold theme-text-primary">Portal en Vivo para Otro Teléfono</h2>
         <p class="text-xs theme-text-secondary leading-relaxed">
-          Escanea desde un segundo teléfono conectado al mini-módem para demostrar en vivo cómo su IP recibe bloqueos, horarios o pausas de intermitencia al instante:
+          Escanea este segundo QR desde el celular de prueba o del evaluador. Entra directo <strong>sin pedir contraseña</strong> y muestra su estado por IP en vivo:
         </p>
         <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <code id="client-url-code" class="font-mono-code text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 text-cyan-300 border border-slate-700 select-all break-all">
@@ -117,6 +117,70 @@
         <strong>Aviso de cambio de módem:</strong> El archivo de configuración tenía <code class="font-mono-code">{{ configured_scope }}</code>, pero tu Wi-Fi o mini-módem actual trabaja en <code class="font-mono-code">{{ net_info.network_scope }}</code>. Al presionar <strong>"Adaptar Sistema a Subred {{ net_info.network_scope }}"</strong> o registrar un equipo desde abajo, el sistema usará automáticamente el rango real de tu mini-módem.
       </div>
     {% endif %}
+  </div>
+
+  <!-- Bloque 2.5: Intermediario Real de Red (Corte y Filtrado en Tiempo Real via Proxy Wi-Fi) -->
+  <div class="surface-card p-5 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div>
+        <h2 class="text-base font-bold theme-text-primary">Intermediario Real de Tráfico Web (Corte y Filtrado en Vivo)</h2>
+        <p class="text-xs theme-text-secondary">
+          Para que el bloqueo, Pausa Temporal, Modo Estudio e Intermitencia corten físicamente videos y páginas en el teléfono de prueba:
+        </p>
+      </div>
+      {% if proxy_status.running %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Intermediario Activo (Puerto {{ proxy_status.port }})
+        </span>
+      {% else %}
+        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-700/60">
+          Intermediario en espera (iniciar con run.py)
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="surface-subtle p-4 space-y-2.5 text-xs">
+        <div class="font-bold theme-text-primary">Configuración rápida en el teléfono de prueba (10 segundos):</div>
+        <ol class="list-decimal ml-4 space-y-1.5 theme-text-secondary leading-relaxed">
+          <li>En el teléfono cliente (Android o iPhone conectado al mismo Wi-Fi), abre las propiedades de esa red Wi-Fi.</li>
+          <li>En <strong>Proxy</strong> cambia de <em>Ninguno</em> a <strong>Manual</strong>.</li>
+          <li>
+            Escribe Servidor: <code class="font-mono-code px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300">{{ net_info.local_ip }}</code>
+            &nbsp;y Puerto: <code class="font-mono-code px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300">{{ proxy_status.port }}</code>.
+          </li>
+          <li>Guarda cambios. Desde ese instante, cuando actives <strong>Bloquear</strong>, <strong>Pausar</strong>, <strong>Modo Estudio</strong> o <strong>Intermitencia</strong>, NetGuard detiene realmente las páginas y videos en el navegador y apps de ese teléfono.</li>
+        </ol>
+      </div>
+
+      <div class="surface-subtle p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold theme-text-primary">Actividad Interceptada en Tiempo Real</span>
+          <span class="text-[11px] theme-text-muted">Auto-actualizable (cada 2.5s)</span>
+        </div>
+        <div id="proxy-live-events" class="space-y-1.5 max-h-44 overflow-y-auto text-xs">
+          {% if proxy_status.recent_events %}
+            {% for ev in proxy_status.recent_events[:8] %}
+              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <div class="min-w-0 truncate">
+                  <span class="font-mono-code text-[11px] theme-text-muted">{{ ev.time }}</span>
+                  <strong class="theme-text-primary ml-1">{{ ev.device_name }}</strong>
+                  <span class="theme-text-secondary">&rarr;</span>
+                  <span class="font-mono-code theme-text-primary">{{ ev.host }}</span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 {% if ev.allowed %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-rose-950 text-rose-300 border border-rose-700/60{% endif %}">
+                  {% if ev.allowed %}PERMITIDO{% else %}BLOQUEADO{% endif %}
+                </span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="py-6 text-center text-xs theme-text-muted">
+              Aún no pasan conexiones por el puerto {{ proxy_status.port }}. Configura el Proxy Manual en el teléfono de prueba y abre YouTube o Google.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Bloque 3: Descubrimiento de Equipos Conectados en Tiempo Real -->

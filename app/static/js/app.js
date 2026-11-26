@@ -1111,6 +1111,44 @@ function initLiveNetworkMonitor() {
 
     scanButtons.forEach((btn) => btn.addEventListener("click", runScan));
   }
+
+  // Auto-refresco de conexiones interceptadas por el Proxy Intermediario
+  const proxyEventsBox = document.getElementById("proxy-live-events");
+  if (proxyEventsBox) {
+    const refreshProxyLogs = async () => {
+      try {
+        const resp = await fetch("/network/proxy-logs", { cache: "no-store" });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!data.success) return;
+        const items = data.recent_events || [];
+        if (!items.length) return;
+        proxyEventsBox.innerHTML = items
+          .slice(0, 10)
+          .map((ev) => {
+            const pillCls = ev.allowed
+              ? "bg-emerald-950 text-emerald-300 border border-emerald-700/60"
+              : "bg-rose-950 text-rose-300 border border-rose-700/60";
+            const pillTxt = ev.allowed ? "PERMITIDO" : "BLOQUEADO";
+            return `
+              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <div class="min-w-0 truncate">
+                  <span class="font-mono-code text-[11px] theme-text-muted">${_escapeHtml(ev.time)}</span>
+                  <strong class="theme-text-primary ml-1">${_escapeHtml(ev.device_name)}</strong>
+                  <span class="theme-text-secondary">&rarr;</span>
+                  <span class="font-mono-code theme-text-primary">${_escapeHtml(ev.host)}</span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${pillCls}">${pillTxt}</span>
+              </div>
+            `;
+          })
+          .join("");
+      } catch {
+        // Silencioso en caso de microcorte
+      }
+    };
+    setInterval(refreshProxyLogs, 2500);
+  }
 }
 
 /**

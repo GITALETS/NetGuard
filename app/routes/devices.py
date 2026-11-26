@@ -7,10 +7,13 @@ from flask_login import current_user, login_required
 from app.extensions import db
 from app.models.audit import AuditLog
 from app.models.device import Device
+from app.models.policy import AccessPolicy
 from app.models.router_event import RouterSyncLog
+from app.models.user import utc_now_naive
 from app.routes.decorators import write_permission_required
 from app.services.category_service import get_category_options
 from app.services.device_service import create_device, delete_device, update_device
+from app.services.intermediary_proxy import bump_proxy_policy_version
 from app.services.network_probe_service import detect_local_network_info
 from app.services.router_adapter import execute_device_router_sync, get_router_adapter
 from app.services.validators import ValidationError
@@ -194,6 +197,17 @@ def detail(device_id: int):
         sync_now = request.form.get("sync_with_adapter") == "1"
         try:
             update_device(device, form_data, user_id=current_user.id)
+            if device.admin_status in ("authorized", "blocked"):
+                prev_auto = AccessPolicy.query.filter_by(
+                    device_id=device.id,
+                    observations="[AUTO_FAMILY_CONTROL]",
+                    status="active",
+                ).all()
+                for p in prev_auto:
+                    p.status = "revoked"
+                if prev_auto:
+                    db.session.commit()
+                    bump_proxy_policy_version()
             if sync_now:
                 sync_res = execute_device_router_sync(device, triggered_by_id=current_user.id)
                 flash(
@@ -261,7 +275,46 @@ def family_access(device_id: int):
     new_status, label = mode_map[mode]
     old_status = device.admin_status
     device.admin_status = new_status
+
+    # Revocar politicas previas autogestionadas de Control Familiar antes de aplicar la nueva
+    prev_auto = AccessPolicy.query.filter_by(
+        device_id=device.id,
+        observations="[AUTO_FAMILY_CONTROL]",
+        status="active",
+    ).all()
+    for p in prev_auto:
+        p.status = "revoked"
+
+    # Crear politica especifica de Control Familiar para que el Intermediario aplique Pausa vs Estudio en tiempo real
+    if mode in ("pause", "study"):
+        now_utc = utc_now_naive()
+        is_pause = mode == "pause"
+        auto_policy = AccessPolicy(
+            name="Control Familiar: Pausa Temporal" if is_pause else "Control Familiar: Modo Estudio",
+            description=(
+                "Pausa total temporal activada desde el Control Familiar."
+                if is_pause
+                else "Restriccion de sitios recreativos y video permitiendo portales escolares."
+            ),
+            device_id=device.id,
+            policy_type="administrative_auth" if is_pause else "navigation_restriction",
+            action="block" if is_pause else "restrict",
+            priority=1,
+            status="active",
+            valid_from=now_utc,
+            valid_until=None,
+            navigation_profile=None if is_pause else "Modo Estudio (Solo tareas y portales educativos)",
+            target_scope="all_traffic" if is_pause else "web_category",
+            observations="[AUTO_FAMILY_CONTROL]",
+            enforcement_status="simulated_in_lab",
+            last_evaluated_at=now_utc,
+            is_demo=device.is_demo,
+            created_by_id=current_user.id,
+        )
+        db.session.add(auto_policy)
+
     db.session.commit()
+    bump_proxy_policy_version()
 
     sync_res = execute_device_router_sync(device, triggered_by_id=current_user.id, commit=True)
 

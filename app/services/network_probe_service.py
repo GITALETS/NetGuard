@@ -726,10 +726,16 @@ def evaluate_live_device_access(
         verdict_color = "amber"
         reason = "Este equipo tiene horarios permitidos configurados y la hora actual está fuera de ventana."
     elif blocking_policy is not None:
-        verdict_code = "blocked"
-        verdict_label = "Bloqueado por Política de Red"
-        verdict_color = "rose"
-        reason = f"Política vigente '{blocking_policy.name}' bloquea el tráfico hacia {blocking_policy.target_domain or 'Internet'}."
+        if blocking_policy.observations == "[AUTO_FAMILY_CONTROL]":
+            verdict_code = "blocked"
+            verdict_label = "Pausa Temporal Activa (Internet Pausado)"
+            verdict_color = "amber"
+            reason = f"El control familiar pausó temporalmente la conexión de '{device.name}'."
+        else:
+            verdict_code = "blocked"
+            verdict_label = "Bloqueado por Política de Red"
+            verdict_color = "rose"
+            reason = f"Política vigente '{blocking_policy.name}' bloquea el tráfico hacia {blocking_policy.target_domain or 'Internet'}."
     elif intermittent_status and intermittent_status["phase"] == "pause_window":
         verdict_code = "intermittent_pause"
         verdict_label = "Pausa de Intermitencia Activa"

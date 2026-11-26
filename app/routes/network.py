@@ -13,6 +13,7 @@ from app.extensions import db
 from app.models.device import Device
 from app.routes.decorators import write_permission_required
 from app.services.audit_service import log_audit_event
+from app.services.intermediary_proxy import get_proxy_status
 from app.services.network_probe_service import (
     detect_local_network_info,
     evaluate_live_device_access,
@@ -37,15 +38,24 @@ def monitor():
     net_info = detect_local_network_info()
     quick_arp = scan_active_network(include_ping_sweep=False)
     devices = Device.query.order_by(Device.is_demo.asc(), Device.name.asc()).all()
+    proxy_status = get_proxy_status()
 
     return render_template(
         "network/monitor.html",
         net_info=net_info,
         initial_scan=quick_arp,
         devices=devices,
+        proxy_status=proxy_status,
         configured_scope=current_app.config.get("DEFAULT_NETWORK_SCOPE", "192.168.1.0/24"),
         configured_gateway=current_app.config.get("DEFAULT_GATEWAY_IP", "192.168.1.1"),
     )
+
+
+@network_bp.route("/proxy-logs")
+@login_required
+def proxy_logs():
+    """Devuelve las ultimas conexiones evaluadas en vivo por el Proxy Intermediario."""
+    return jsonify({"success": True, **get_proxy_status()})
 
 
 @network_bp.route("/scan", methods=["POST"])

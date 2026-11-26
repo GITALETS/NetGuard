@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Framework-Flask%203.x-black?style=flat-square&logo=flask&logoColor=white" alt="Flask">
   <img src="https://img.shields.io/badge/Base%20de%20Datos-MySQL%208.0%2B-4479A1?style=flat-square&logo=mysql&logoColor=white" alt="MySQL">
-  <img src="https://img.shields.io/badge/Pruebas-27%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
+  <img src="https://img.shields.io/badge/Pruebas-28%20Exitosas-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="Pytest">
   <img src="https://img.shields.io/badge/Licencia-Proyecto%20de%20Tesis-lightgrey?style=flat-square" alt="Licencia">
 </p>
 
@@ -44,6 +44,7 @@ Implementado en `app/services/network_probe_service.py` y `app/routes/network.py
 - **Codigos QR Locales para Celulares**: Genera codigos QR vectoriales SVG sin depender de servicios externos para abrir inmediatamente el panel completo en el telefono del presentador o el portal de estado en vivo en otro telefono.
 - **Descubrimiento en Tiempo Real (ARP + Barrido ICMP)**: Lee la cache ARP fisica del sistema operativo y realiza un sondeo ICMP paralelo para listar los equipos conectados actualmente al mini-modem con su IP, direccion MAC y latencia real en milisegundos, permitiendo registrarlos en NetGuard con un solo clic.
 - **Portal Cliente en Tiempo Real (`/network/mi-acceso`)**: Pagina movil ligera que identifica la IP real del telefono conectado al mini-modem (`request.remote_addr`) y se actualiza automaticamente cada 3 segundos para mostrar en vivo si el dispositivo tiene Internet Libre, Pausa Familiar, Bloqueo, Horario Activo o en que fase del ciclo de Intermitencia se encuentra.
+- **Intermediario Real de Trafico HTTP/HTTPS (Puerto `8888`)**: Implementado en `app/services/intermediary_proxy.py`, permite que cualquier telefono conectado al mini-modem o hotspot configure el Proxy Wi-Fi hacia la IP de la laptop (`:8888`) para detener y filtrar en tiempo real videos, busquedas, Modo Estudio y ciclos de intermitencia por dominio.
 
 ### 3.2. Administracion de Dispositivos y Ficha Unificada (`/devices`)
 - **Entrada Segmentada IPv4 con Puntos Fijos**: Campo intuitivo dividido en cuatro octetos (`XXX . XXX . XXX . XXX`) que avanza automaticamente entre octetos y adapta la subred privada sugerida al mini-modem o Wi-Fi conectado.
@@ -81,7 +82,7 @@ Para presentar evidencia en tiempo real fuera de casa usando un mini-modem porta
 1. **Conectar la PC y los telefonos**: Conecte la laptop donde corre el servidor y los telefonos de prueba a la misma red Wi-Fi emitida por el mini-modem.
 2. **Permitir trafico local en Windows Firewall (una sola vez)**: Al iniciar la aplicacion en la red nueva del mini-modem, seleccione la red como Privada o ejecute en PowerShell como Administrador:
    ```powershell
-   New-NetFirewallRule -DisplayName "NetGuard Home IP Puerto 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow -Profile Private,Public
+   New-NetFirewallRule -DisplayName "NetGuard Home IP Puertos 5000 y 8888" -Direction Inbound -Protocol TCP -LocalPort 5000,8888 -Action Allow -Profile Private,Public
    ```
 3. **Arrancar el sistema**: Ejecute `INICIAR_SISTEMA.bat` o `py run.py`. El servidor escucha en todas las interfaces (`0.0.0.0:5000`) e imprime en consola la URL exacta de red Wi-Fi (ejemplo: `http://192.168.8.100:5000`).
 4. **Abrir desde tu telefono (sin estar en la PC)**: En el panel lateral entre a **Monitor en Vivo** y escanee el primer **Codigo QR** con la camara de su telefono para operar el sistema de manera tactil.
@@ -129,6 +130,7 @@ TESISAVANCE/
 |   |   `-- settings.py                 Diagnostico de MySQL, carga/limpieza demo y modo de adaptador
 |   |-- services/
 |   |   |-- network_probe_service.py    Deteccion de interfaz Wi-Fi/mini-modem, QR SVG, ARP, Ping ICMP y evaluacion en vivo
+|   |   |-- intermediary_proxy.py       Servidor Proxy HTTP/HTTPS real en puerto 8888 para corte y filtrado en vivo
 |   |   |-- device_service.py           Logica de negocio y unicidad IP/MAC por ambito de red
 |   |   |-- policy_service.py           Validacion de intervalos, expiracion automatica y contradicciones
 |   |   |-- schedule_service.py         Gestion de horarios globales/individuales y calculo de ventanas
@@ -143,7 +145,7 @@ TESISAVANCE/
 |   |   |-- css/app.css                 Temas Claro/Oscuro, componente IP segmentado, tablas y barra tactil movil
 |   |   `-- js/app.js                   Validadores en vivo, menus hamburguesa, escaneo AJAX y auto-refresco movil
 |   `-- templates/                      Vistas HTML5 Jinja2 responsivas (escritorio + tarjetas moviles)
-`-- tests/                              Suite de 27 pruebas automatizadas con Pytest sobre BD en memoria
+`-- tests/                              Suite de 28 pruebas automatizadas con Pytest sobre BD en memoria
 ```
 
 ---
@@ -168,4 +170,4 @@ Todas las pruebas corren de forma aislada sobre SQLite en memoria sin alterar lo
 ```powershell
 py -3.14 -m pytest -v
 ```
-Resultado verificado: **27 passed** cubriendo autenticacion, RBAC, validacion IP/MAC, politicas con intermitencia, horarios globales con exclusion de equipos bloqueados, deteccion de red, portal en vivo y vistas HTTP.
+Resultado verificado: **28 passed** cubriendo autenticacion, RBAC, validacion IP/MAC, politicas con intermitencia, horarios globales con exclusion de equipos bloqueados, deteccion de red, intermediario proxy real y vistas HTTP.

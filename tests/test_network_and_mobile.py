@@ -169,3 +169,61 @@ def test_network_routes_and_mobile_client_portal(client, auth_client, monkeypatc
     assert "192.168.8.33" in prefill_html
     assert "192.168.8.0/24" in prefill_html
     assert "Celular Invitado" in prefill_html
+
+
+def test_intermediary_proxy_decision_engine(app, auth_client):
+    """Verifica las decisiones reales del Proxy Intermediario por IP, Modo Estudio, Bloqueo e Intermitencia."""
+    from app.services.intermediary_proxy import bump_proxy_policy_version, evaluate_proxy_request
+
+    with app.app_context():
+        dev = create_device(
+            {
+                "name": "Android Proxy Demo",
+                "ip_address": "172.20.10.9",
+                "network_scope": "172.20.10.0/28",
+                "device_type": "smartphone",
+                "admin_status": "authorized",
+            }
+        )
+        dev_id = dev.id
+        bump_proxy_policy_version()
+
+        # 1. Autorizado: permite todo
+        assert evaluate_proxy_request("172.20.10.9", "www.youtube.com")["allowed"] is True
+        assert evaluate_proxy_request("172.20.10.9", "es.wikipedia.org")["allowed"] is True
+
+        # 2. Bloqueado: corta internet real pero mantiene acceso a NetGuard local
+        dev.admin_status = "blocked"
+        from app.extensions import db
+        db.session.commit()
+        bump_proxy_policy_version()
+
+        assert evaluate_proxy_request("172.20.10.9", "www.youtube.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "www.google.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "172.20.10.4", target_port=5000, server_ips=("172.20.10.4",))["allowed"] is True
+
+    # 3. Modo Estudio vía Control Familiar: bloquea YouTube/TikTok pero permite Wikipedia
+    detail_resp = auth_client.get(f"/devices/{dev_id}")
+    csrf_tok = extract_csrf_token(detail_resp.get_data(as_text=True))
+    auth_client.post(
+        f"/devices/{dev_id}/family-access",
+        data={"csrf_token": csrf_tok, "mode": "study"},
+        follow_redirects=True,
+    )
+
+    with app.app_context():
+        assert evaluate_proxy_request("172.20.10.9", "m.youtube.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "rr3---sn.googlevideo.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "www.tiktok.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "es.wikipedia.org")["allowed"] is True
+
+    # 4. Pausa Temporal vía Control Familiar: detiene todo Internet
+    auth_client.post(
+        f"/devices/{dev_id}/family-access",
+        data={"csrf_token": csrf_tok, "mode": "pause"},
+        follow_redirects=True,
+    )
+    with app.app_context():
+        assert evaluate_proxy_request("172.20.10.9", "www.google.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "es.wikipedia.org")["allowed"] is False
+

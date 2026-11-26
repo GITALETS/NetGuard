@@ -12,6 +12,7 @@ from app.models.device import Device
 from app.models.policy import AccessPolicy
 from app.models.schedule import AccessSchedule
 from app.services.audit_service import log_audit_event
+from app.services.intermediary_proxy import bump_proxy_policy_version
 from app.services.validators import ValidationError, validate_schedule_params
 
 
@@ -120,6 +121,7 @@ def create_schedule(
             },
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return schedule
     except SQLAlchemyError as exc:
         db.session.rollback()
@@ -220,6 +222,7 @@ def update_schedule(
             },
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return schedule
     except SQLAlchemyError as exc:
         db.session.rollback()
@@ -245,6 +248,7 @@ def toggle_schedule_active(
             metadata={"is_active": schedule.is_active},
         )
         db.session.commit()
+        bump_proxy_policy_version()
         return schedule
     except SQLAlchemyError as exc:
         db.session.rollback()
@@ -269,6 +273,7 @@ def delete_schedule(schedule: AccessSchedule, user_id: Optional[int] = None) -> 
             metadata={"label": sch_label, "device_code": dev_code},
         )
         db.session.commit()
+        bump_proxy_policy_version()
     except SQLAlchemyError as exc:
         db.session.rollback()
         raise ValidationError("Error de base de datos al eliminar el horario.") from exc
