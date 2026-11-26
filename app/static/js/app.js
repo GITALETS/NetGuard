@@ -51,7 +51,8 @@ function initThemeToggle() {
 
   if (toggleBtn) {
     toggleBtn.addEventListener("click", () => {
-      const current = htmlEl.getAttribute("data-theme") === "dark" ? "dark" : "light";
+      const current =
+        htmlEl.getAttribute("data-theme") === "dark" ? "dark" : "light";
       const next = current === "dark" ? "light" : "dark";
       localStorage.setItem("netguard_ui_theme", next);
       applyTheme(next);
@@ -154,8 +155,10 @@ function _showFormInlineError(form, message, focusEl) {
   let box = form.querySelector(".js-inline-validation-alert");
   if (!box) {
     box = document.createElement("div");
-    box.className = "js-inline-validation-alert p-3 rounded-xl bg-rose-950/70 border border-rose-700/70 text-xs font-medium text-rose-200";
-    const submitRow = form.querySelector('button[type="submit"]')?.closest("div.pt-4") || form;
+    box.className =
+      "js-inline-validation-alert p-3 rounded-xl bg-rose-950/70 border border-rose-700/70 text-xs font-medium text-rose-200";
+    const submitRow =
+      form.querySelector('button[type="submit"]')?.closest("div.pt-4") || form;
     if (submitRow && submitRow.parentElement === form) {
       form.insertBefore(box, submitRow);
     } else {
@@ -226,7 +229,9 @@ function initPolicyFormHelper() {
     const targetScopeSelect = document.getElementById("target_scope");
     const targetDomainGroup = document.getElementById("target_domain_group");
     const intermittentCheckbox = document.getElementById("is_intermittent");
-    const intermittentSettings = document.getElementById("intermittent_settings");
+    const intermittentSettings = document.getElementById(
+      "intermittent_settings",
+    );
 
     if (targetScopeSelect && targetDomainGroup) {
       if (targetScopeSelect.value === "specific_domain") {
@@ -240,7 +245,8 @@ function initPolicyFormHelper() {
       if (typeVal === "intermittent_intermediary") {
         intermittentCheckbox.checked = true;
       }
-      const isInter = intermittentCheckbox.checked || typeVal === "intermittent_intermediary";
+      const isInter =
+        intermittentCheckbox.checked || typeVal === "intermittent_intermediary";
       if (isInter) {
         intermittentSettings.classList.remove("hidden");
       } else {
@@ -251,8 +257,10 @@ function initPolicyFormHelper() {
 
   const targetScopeSelect = document.getElementById("target_scope");
   const intermittentCheckbox = document.getElementById("is_intermittent");
-  if (targetScopeSelect) targetScopeSelect.addEventListener("change", updateFields);
-  if (intermittentCheckbox) intermittentCheckbox.addEventListener("change", updateFields);
+  if (targetScopeSelect)
+    targetScopeSelect.addEventListener("change", updateFields);
+  if (intermittentCheckbox)
+    intermittentCheckbox.addEventListener("change", updateFields);
 
   typeSelect.addEventListener("change", updateFields);
   updateFields();
@@ -265,13 +273,19 @@ function initPolicyFormHelper() {
       const nameInput = document.getElementById("name");
       const navProfileInput = document.getElementById("navigation_profile");
       const targetDomainInput = document.getElementById("target_domain");
-      const activeMinsInput = document.getElementById("interval_active_minutes");
+      const activeMinsInput = document.getElementById(
+        "interval_active_minutes",
+      );
       const pauseMinsInput = document.getElementById("interval_pause_minutes");
 
       const nameVal = (nameInput?.value || "").trim();
       if (nameVal.length < 3) {
         e.preventDefault();
-        _showFormInlineError(form, "Escribe un nombre de al menos 3 letras para identificar esta regla.", nameInput);
+        _showFormInlineError(
+          form,
+          "Escribe un nombre de al menos 3 letras para identificar esta regla.",
+          nameInput,
+        );
         return;
       }
 
@@ -284,19 +298,31 @@ function initPolicyFormHelper() {
       if (typeVal === "navigation_restriction") {
         if (actionVal === "allow") {
           e.preventDefault();
-          _showFormInlineError(form, "Para restringir páginas debes elegir 'Limitar / Con filtro familiar' o 'Pausar / Bloquear acceso'.", actionSelect);
+          _showFormInlineError(
+            form,
+            "Para restringir páginas debes elegir 'Limitar / Con filtro familiar' o 'Pausar / Bloquear acceso'.",
+            actionSelect,
+          );
           return;
         }
         if (!navProfileVal && !domainVal) {
           e.preventDefault();
-          _showFormInlineError(form, "Indica qué sitios o usos deseas limitar en este filtro familiar.", navProfileInput);
+          _showFormInlineError(
+            form,
+            "Indica qué sitios o usos deseas limitar en este filtro familiar.",
+            navProfileInput,
+          );
           return;
         }
       }
 
       if (scopeVal === "specific_domain" && !domainVal) {
         e.preventDefault();
-        _showFormInlineError(form, "Escribe el dominio o página web que deseas controlar (ejemplo: youtube.com o tiktok.com).", targetDomainInput);
+        _showFormInlineError(
+          form,
+          "Escribe el dominio o página web que deseas controlar (ejemplo: youtube.com o tiktok.com).",
+          targetDomainInput,
+        );
         return;
       }
 
@@ -304,26 +330,45 @@ function initPolicyFormHelper() {
       const vuVal = (validUntilInput?.value || "").trim();
       if (!vfVal) {
         e.preventDefault();
-        _showFormInlineError(form, "Elige la fecha y hora desde cuando empieza la regla.", validFromInput);
+        _showFormInlineError(
+          form,
+          "Elige la fecha y hora desde cuando empieza la regla.",
+          validFromInput,
+        );
         return;
       }
       if (typeVal === "temporary_access" && !vuVal) {
         e.preventDefault();
-        _showFormInlineError(form, "Para un Permiso Temporal es obligatorio indicar hasta cuándo estará activo.", validUntilInput);
+        _showFormInlineError(
+          form,
+          "Para un Permiso Temporal es obligatorio indicar hasta cuándo estará activo.",
+          validUntilInput,
+        );
         return;
       }
       if (vfVal && vuVal && vuVal <= vfVal) {
         e.preventDefault();
-        _showFormInlineError(form, "La fecha de finalización debe ser posterior a la fecha de inicio.", validUntilInput);
+        _showFormInlineError(
+          form,
+          "La fecha de finalización debe ser posterior a la fecha de inicio.",
+          validUntilInput,
+        );
         return;
       }
 
-      if (intermittentCheckbox?.checked || typeVal === "intermittent_intermediary") {
+      if (
+        intermittentCheckbox?.checked ||
+        typeVal === "intermittent_intermediary"
+      ) {
         const am = Number(activeMinsInput?.value || 0);
         const pm = Number(pauseMinsInput?.value || 0);
         if (am < 1 || am > 720 || pm < 1 || pm > 720) {
           e.preventDefault();
-          _showFormInlineError(form, "Los minutos de uso y de descanso deben estar entre 1 y 720.", activeMinsInput);
+          _showFormInlineError(
+            form,
+            "Los minutos de uso y de descanso deben estar entre 1 y 720.",
+            activeMinsInput,
+          );
         }
       }
     });
@@ -380,7 +425,8 @@ function initScheduleFormHelper() {
 
     const hours = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
-    const durText = `${hours} horas ${mins > 0 ? "y " + mins + " min" : ""}`.trim();
+    const durText =
+      `${hours} horas ${mins > 0 ? "y " + mins + " min" : ""}`.trim();
 
     if (crosses) {
       previewBox.innerHTML =
@@ -406,14 +452,23 @@ function initScheduleFormHelper() {
       const labelVal = (labelInput?.value || "").trim();
       if (labelVal.length < 3) {
         e.preventDefault();
-        _showFormInlineError(form, "Escribe un nombre de al menos 3 letras para reconocer este horario.", labelInput);
+        _showFormInlineError(
+          form,
+          "Escribe un nombre de al menos 3 letras para reconocer este horario.",
+          labelInput,
+        );
         return;
       }
 
-      const checkedDays = form.querySelectorAll('input[name="days_of_week"]:checked');
+      const checkedDays = form.querySelectorAll(
+        'input[name="days_of_week"]:checked',
+      );
       if (!checkedDays.length) {
         e.preventDefault();
-        _showFormInlineError(form, "Selecciona al menos un día de la semana (o usa los botones rápidos como 'Todos los días').");
+        _showFormInlineError(
+          form,
+          "Selecciona al menos un día de la semana (o usa los botones rápidos como 'Todos los días').",
+        );
         return;
       }
 
@@ -421,7 +476,11 @@ function initScheduleFormHelper() {
       const endV = (endInput.value || "").trim();
       if (!s || !endV || s === endV) {
         e.preventDefault();
-        _showFormInlineError(form, "Elige horas válidas y diferentes para el inicio y el fin del horario.", endInput);
+        _showFormInlineError(
+          form,
+          "Elige horas válidas y diferentes para el inicio y el fin del horario.",
+          endInput,
+        );
       }
     });
   }
@@ -439,7 +498,9 @@ function initSubmitLoadingIndicator() {
       if (form.dataset.confirmMessage && form.dataset.confirmed !== "true") {
         return;
       }
-      const btn = form.querySelector('button[type="submit"][data-loading-text]');
+      const btn = form.querySelector(
+        'button[type="submit"][data-loading-text]',
+      );
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = `<span>${btn.dataset.loadingText}</span>`;
@@ -569,7 +630,10 @@ function initIpSegmentedInputs() {
 
     populateFromHidden();
     // Actualizar hidden si se precargo prefijo
-    if (!hiddenInput.value && Array.from(octetInputs).some((i) => i.value !== "")) {
+    if (
+      !hiddenInput.value &&
+      Array.from(octetInputs).some((i) => i.value !== "")
+    ) {
       updateHidden();
     }
 
@@ -623,7 +687,11 @@ function initIpSegmentedInputs() {
         }
 
         // Flecha derecha al final del octeto
-        if (e.key === "ArrowRight" && input.selectionEnd === input.value.length && index < 3) {
+        if (
+          e.key === "ArrowRight" &&
+          input.selectionEnd === input.value.length &&
+          index < 3
+        ) {
           e.preventDefault();
           const next = octetInputs[index + 1];
           next.focus();
@@ -635,7 +703,8 @@ function initIpSegmentedInputs() {
       // Pegar direccion IP completa (ej. 192.168.1.50)
       input.addEventListener("paste", (e) => {
         e.preventDefault();
-        const pastedText = (e.clipboardData || window.clipboardData).getData("text") || "";
+        const pastedText =
+          (e.clipboardData || window.clipboardData).getData("text") || "";
         const parts = pastedText.trim().split(/[.\s]+/);
         if (parts.length >= 2) {
           parts.slice(0, 4).forEach((part, pIdx) => {
@@ -669,8 +738,13 @@ function initIpSegmentedInputs() {
 
     // Clic en el contenedor fuera de los inputs enfoca el primer octeto vacio o el ultimo
     container.addEventListener("click", (e) => {
-      if (e.target === container || e.target.classList.contains("ip-dot-separator")) {
-        const firstEmpty = Array.from(octetInputs).find((inp) => inp.value === "") || octetInputs[3];
+      if (
+        e.target === container ||
+        e.target.classList.contains("ip-dot-separator")
+      ) {
+        const firstEmpty =
+          Array.from(octetInputs).find((inp) => inp.value === "") ||
+          octetInputs[3];
         firstEmpty.focus();
       }
     });
@@ -685,7 +759,8 @@ function isIpInCidr(ipStr, cidrStr) {
     const [netIp, prefixRaw] = (cidrStr || "").split("/");
     const prefix = Number(prefixRaw);
     if (!netIp || isNaN(prefix) || prefix < 0 || prefix > 32) return false;
-    const toInt = (s) => s.split(".").reduce((acc, oct) => (acc << 8) + Number(oct), 0) >>> 0;
+    const toInt = (s) =>
+      s.split(".").reduce((acc, oct) => (acc << 8) + Number(oct), 0) >>> 0;
     const mask = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
     return (toInt(ipStr) & mask) === (toInt(netIp) & mask);
   } catch {
@@ -699,14 +774,18 @@ function isIpInCidr(ipStr, cidrStr) {
 function isPrivateRfc1918Ip(parts) {
   const a = Number(parts[0]);
   const b = Number(parts[1]);
-  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+  return (
+    a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
+  );
 }
 
 /**
  * Validaciones reactivas en Front-End para Direcciones IP RFC 1918, Subred CIDR y Direcciones MAC.
  */
 function initLiveNetworkValidators() {
-  const scopeInput = document.getElementById("network_scope") || document.getElementById("editor_network_scope");
+  const scopeInput =
+    document.getElementById("network_scope") ||
+    document.getElementById("editor_network_scope");
 
   const isValidCidr = (raw) => {
     const parts = (raw || "").trim().split("/");
@@ -715,7 +794,9 @@ function initLiveNetworkValidators() {
     const prefix = Number(parts[1]);
     return (
       octs.length === 4 &&
-      octs.every((p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255) &&
+      octs.every(
+        (p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255,
+      ) &&
       !isNaN(prefix) &&
       Number.isInteger(prefix) &&
       prefix >= 0 &&
@@ -724,37 +805,57 @@ function initLiveNetworkValidators() {
   };
 
   // Validación reactiva de IP
-  const ipInputs = document.querySelectorAll('[data-validate-ip="true"], #ip_address, #editor_ip_address');
+  const ipInputs = document.querySelectorAll(
+    '[data-validate-ip="true"], #ip_address, #editor_ip_address',
+  );
   ipInputs.forEach((input) => {
     // Detectar si el input esta asociado a un contenedor segmentado con puntos fijos
-    const container = document.querySelector(`[data-target-input="${input.id}"]`);
+    const container = document.querySelector(
+      `[data-target-input="${input.id}"]`,
+    );
     const visualElement = container || input;
 
     // Buscar caja de retroalimentacion contextual
-    const feedbackBox = input.closest(".ip-segmented-wrapper")?.parentElement?.querySelector("#ip_feedback_box") ||
-                        input.parentElement?.querySelector("#ip_feedback_box") ||
-                        document.getElementById("ip_feedback_box");
+    const feedbackBox =
+      input
+        .closest(".ip-segmented-wrapper")
+        ?.parentElement?.querySelector("#ip_feedback_box") ||
+      input.parentElement?.querySelector("#ip_feedback_box") ||
+      document.getElementById("ip_feedback_box");
 
     const validateCurrentIp = () => {
       const val = input.value.trim();
       if (!val) {
-        visualElement.classList.remove("border-emerald-500", "border-rose-500", "border-amber-500");
+        visualElement.classList.remove(
+          "border-emerald-500",
+          "border-rose-500",
+          "border-amber-500",
+        );
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 theme-text-muted";
-          feedbackBox.textContent = "Ingrese la dirección IP privada del dispositivo.";
+          feedbackBox.textContent =
+            "Ingrese la dirección IP privada del dispositivo.";
         }
         return false;
       }
 
       const parts = val.split(".");
-      const isValidShape = parts.length === 4 && parts.every((p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255);
+      const isValidShape =
+        parts.length === 4 &&
+        parts.every(
+          (p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255,
+        );
 
       if (!isValidShape) {
         visualElement.classList.add("border-rose-500");
-        visualElement.classList.remove("border-emerald-500", "border-amber-500");
+        visualElement.classList.remove(
+          "border-emerald-500",
+          "border-amber-500",
+        );
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-medium";
-          feedbackBox.textContent = "Formato IP incompleto. Deben completarse los 4 números (0-255).";
+          feedbackBox.textContent =
+            "Formato IP incompleto. Deben completarse los 4 números (0-255).";
         }
         return false;
       }
@@ -778,22 +879,37 @@ function initLiveNetworkValidators() {
         visualElement.classList.add("border-amber-500");
         visualElement.classList.remove("border-emerald-500", "border-rose-500");
         if (feedbackBox) {
-          feedbackBox.className = "text-[11px] mt-1 text-amber-400 font-semibold";
-          feedbackBox.textContent = "Atención: La dirección terminada en .1 suele ser el Router o Mini-Módem y no debe asignarse a un equipo cliente.";
+          feedbackBox.className =
+            "text-[11px] mt-1 text-amber-400 font-semibold";
+          feedbackBox.textContent =
+            "Atención: La dirección terminada en .1 suele ser el Router o Mini-Módem y no debe asignarse a un equipo cliente.";
         }
       } else if (lastOctet === 0 || lastOctet === 255) {
         visualElement.classList.add("border-rose-500");
-        visualElement.classList.remove("border-emerald-500", "border-amber-500");
+        visualElement.classList.remove(
+          "border-emerald-500",
+          "border-amber-500",
+        );
         if (feedbackBox) {
-          feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-semibold";
-          feedbackBox.textContent = "Dirección no asignable: .0 es la dirección de red y .255 es la dirección de broadcast.";
+          feedbackBox.className =
+            "text-[11px] mt-1 text-rose-400 font-semibold";
+          feedbackBox.textContent =
+            "Dirección no asignable: .0 es la dirección de red y .255 es la dirección de broadcast.";
         }
         return false;
-      } else if (currentScope && isValidCidr(currentScope) && !isIpInCidr(val, currentScope)) {
+      } else if (
+        currentScope &&
+        isValidCidr(currentScope) &&
+        !isIpInCidr(val, currentScope)
+      ) {
         visualElement.classList.add("border-rose-500");
-        visualElement.classList.remove("border-emerald-500", "border-amber-500");
+        visualElement.classList.remove(
+          "border-emerald-500",
+          "border-amber-500",
+        );
         if (feedbackBox) {
-          feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-semibold";
+          feedbackBox.className =
+            "text-[11px] mt-1 text-rose-400 font-semibold";
           feedbackBox.textContent = `La IP ${val} no pertenece a la subred ${currentScope}.`;
         }
         return false;
@@ -801,7 +917,8 @@ function initLiveNetworkValidators() {
         visualElement.classList.add("border-emerald-500");
         visualElement.classList.remove("border-rose-500", "border-amber-500");
         if (feedbackBox) {
-          feedbackBox.className = "text-[11px] mt-1 text-emerald-400 font-medium";
+          feedbackBox.className =
+            "text-[11px] mt-1 text-emerald-400 font-medium";
           feedbackBox.textContent = currentScope
             ? `Dirección IP válida para la subred ${currentScope}.`
             : "Dirección IP válida y conforme a rangos privados RFC 1918.";
@@ -834,31 +951,49 @@ function initLiveNetworkValidators() {
         const nameField = form.querySelector('[name="name"]');
         if (nameField && (nameField.value || "").trim().length < 2) {
           e.preventDefault();
-          _showFormInlineError(form, "Escribe un nombre reconocible para este equipo.", nameField);
+          _showFormInlineError(
+            form,
+            "Escribe un nombre reconocible para este equipo.",
+            nameField,
+          );
           return;
         }
         if (!validateCurrentIp()) {
           e.preventDefault();
-          _showFormInlineError(form, "Revisa la dirección IP: debe tener 4 números válidos y pertenecer al ámbito de red configurado.", visualElement);
+          _showFormInlineError(
+            form,
+            "Revisa la dirección IP: debe tener 4 números válidos y pertenecer al ámbito de red configurado.",
+            visualElement,
+          );
           return;
         }
         if (scopeInput && !isValidCidr(scopeInput.value)) {
           e.preventDefault();
-          _showFormInlineError(form, "El ámbito de red (CIDR) debe tener formato válido (ejemplo: 192.168.1.0/24).", scopeInput);
+          _showFormInlineError(
+            form,
+            "El ámbito de red (CIDR) debe tener formato válido (ejemplo: 192.168.1.0/24).",
+            scopeInput,
+          );
           return;
         }
         const macField = form.querySelector('[name="mac_address"]');
         const macRaw = (macField?.value || "").replace(/[^0-9A-Fa-f]/g, "");
         if (macField && macRaw.length > 0 && macRaw.length !== 12) {
           e.preventDefault();
-          _showFormInlineError(form, "La dirección MAC es opcional, pero si la escribes debe tener exactamente 12 caracteres hexadecimales.", macField);
+          _showFormInlineError(
+            form,
+            "La dirección MAC es opcional, pero si la escribes debe tener exactamente 12 caracteres hexadecimales.",
+            macField,
+          );
         }
       });
     }
   });
 
   // Validación y auto-formateo reactivo de MAC
-  const macInputs = document.querySelectorAll('[data-validate-mac="true"], #mac_address, #editor_mac_address');
+  const macInputs = document.querySelectorAll(
+    '[data-validate-mac="true"], #mac_address, #editor_mac_address',
+  );
   macInputs.forEach((input) => {
     const feedbackBox = document.getElementById("mac_feedback_box");
     input.addEventListener("input", (e) => {
@@ -873,7 +1008,8 @@ function initLiveNetworkValidators() {
         input.classList.remove("border-emerald-500", "border-rose-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 theme-text-muted";
-          feedbackBox.textContent = "Formato estándar de 6 pares hexadecimales separados por dos puntos (Opcional).";
+          feedbackBox.textContent =
+            "Formato estándar de 6 pares hexadecimales separados por dos puntos (Opcional).";
         }
         return;
       }
@@ -882,8 +1018,10 @@ function initLiveNetworkValidators() {
         input.classList.add("border-emerald-500");
         input.classList.remove("border-rose-500");
         if (feedbackBox) {
-          feedbackBox.className = "text-[11px] mt-1 text-emerald-400 font-medium";
-          feedbackBox.textContent = "Dirección MAC física válida de 48 bits (Capa de Enlace).";
+          feedbackBox.className =
+            "text-[11px] mt-1 text-emerald-400 font-medium";
+          feedbackBox.textContent =
+            "Dirección MAC física válida de 48 bits (Capa de Enlace).";
         }
       } else {
         input.classList.add("border-rose-500");
@@ -932,7 +1070,8 @@ function initCategoryQuickAddModal() {
   // Abrir modal configurando el tipo
   document.querySelectorAll("[data-open-category-modal]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const catType = btn.getAttribute("data-open-category-modal") || "device_type";
+      const catType =
+        btn.getAttribute("data-open-category-modal") || "device_type";
       if (typeInput) typeInput.value = catType;
 
       if (titleEl) {
@@ -963,7 +1102,8 @@ function initCategoryQuickAddModal() {
     const catType = typeInput ? typeInput.value : "device_type";
     const nameVal = nameInput ? nameInput.value.trim() : "";
     const descVal = descInput ? descInput.value.trim() : "";
-    const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || "";
+    const csrfToken =
+      form.querySelector('input[name="csrf_token"]')?.value || "";
 
     if (!nameVal) {
       if (errorBox) {
@@ -1052,7 +1192,9 @@ function initTableActionMenus() {
       e.preventDefault();
       e.stopPropagation();
       const container = btn.closest(".action-dropdown-container");
-      const menu = container ? container.querySelector(".action-dropdown-menu") : null;
+      const menu = container
+        ? container.querySelector(".action-dropdown-menu")
+        : null;
       if (!menu) return;
 
       const isCurrentlyOpen = !menu.classList.contains("hidden");
@@ -1097,7 +1239,11 @@ function _escapeHtml(str) {
 }
 
 function _getCsrfToken() {
-  return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+  return (
+    document
+      .querySelector('meta[name="csrf-token"]')
+      ?.getAttribute("content") || ""
+  );
 }
 
 /**
@@ -1115,7 +1261,9 @@ function initLiveNetworkMonitor() {
         await navigator.clipboard.writeText(text);
         const orig = btn.textContent;
         btn.textContent = "Copiado";
-        setTimeout(() => { btn.textContent = orig; }, 1600);
+        setTimeout(() => {
+          btn.textContent = orig;
+        }, 1600);
       } catch {
         // Fallback silencioso
       }
@@ -1141,15 +1289,22 @@ function initLiveNetworkMonitor() {
             "Content-Type": "application/json",
             "X-CSRFToken": _getCsrfToken(),
           },
-          body: JSON.stringify({ ip_address: ip, device_id: devId, record_audit: true }),
+          body: JSON.stringify({
+            ip_address: ip,
+            device_id: devId,
+            record_audit: true,
+          }),
         });
         const data = await resp.json();
         if (resp.ok && data.success) {
-          detailPingBox.className = data.online ? "text-xs font-semibold text-emerald-400" : "text-xs font-semibold text-rose-400";
+          detailPingBox.className = data.online
+            ? "text-xs font-semibold text-emerald-400"
+            : "text-xs font-semibold text-rose-400";
           detailPingBox.textContent = `${data.detail} (Comprobado a las ${data.checked_at})`;
         } else {
           detailPingBox.className = "text-xs text-rose-400";
-          detailPingBox.textContent = data.error || "No se pudo realizar la prueba.";
+          detailPingBox.textContent =
+            data.error || "No se pudo realizar la prueba.";
         }
       } catch {
         detailPingBox.className = "text-xs text-rose-400";
@@ -1184,11 +1339,16 @@ function initLiveNetworkMonitor() {
           const data = await resp.json();
           if (badge && data.success) {
             if (data.online) {
-              badge.className = "host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-emerald-950 text-emerald-300 border border-emerald-700/60";
-              badge.textContent = data.latency_ms !== null ? `En línea (${data.latency_ms} ms)` : "En línea";
+              badge.className =
+                "host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-emerald-950 text-emerald-300 border border-emerald-700/60";
+              badge.textContent =
+                data.latency_ms !== null
+                  ? `En línea (${data.latency_ms} ms)`
+                  : "En línea";
               if (card) card.classList.add("border-emerald-700/50");
             } else {
-              badge.className = "host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-rose-950 text-rose-300 border border-rose-700/60";
+              badge.className =
+                "host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-rose-950 text-rose-300 border border-rose-700/60";
               badge.textContent = "Sin respuesta";
               if (card) card.classList.remove("border-emerald-700/50");
             }
@@ -1220,7 +1380,8 @@ function initLiveNetworkMonitor() {
         b.textContent = "Buscando equipos...";
       });
       if (subtitleEl) {
-        subtitleEl.textContent = "Buscando celulares, computadoras y pantallas conectadas a tu red Wi-Fi...";
+        subtitleEl.textContent =
+          "Buscando celulares, computadoras y pantallas conectadas a tu red Wi-Fi...";
       }
 
       try {
@@ -1244,7 +1405,9 @@ function initLiveNetworkMonitor() {
         } else {
           grid.innerHTML = data.discovered
             .map((host) => {
-              const title = host.registered_device ? host.registered_device.name : host.suggested_name;
+              const title = host.registered_device
+                ? host.registered_device.name
+                : host.suggested_name;
               const badgeCls = host.is_online
                 ? "bg-emerald-950 text-emerald-300 border border-emerald-700/60"
                 : "bg-slate-800 theme-text-muted";
@@ -1257,8 +1420,8 @@ function initLiveNetworkMonitor() {
               const roleTag = host.is_this_server
                 ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">Esta PC</span>'
                 : host.is_gateway
-                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/60">Módem Wi-Fi</span>'
-                : "";
+                  ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/60">Módem Wi-Fi</span>'
+                  : "";
 
               const dbTag = host.registered_device
                 ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">En tu lista (${_escapeHtml(host.registered_device.admin_status_label)})</span>`
@@ -1270,7 +1433,9 @@ function initLiveNetworkMonitor() {
                 const devHref = canModify
                   ? `/devices/${encodeURIComponent(host.registered_device.id)}?tab=family`
                   : `/devices/${encodeURIComponent(host.registered_device.id)}`;
-                const devBtnLabel = canModify ? "Controlar Internet" : "Ver Ficha";
+                const devBtnLabel = canModify
+                  ? "Controlar Internet"
+                  : "Ver Ficha";
                 actionLink = `<a href="${devHref}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">${devBtnLabel}</a>`;
               } else if (host.is_this_server) {
                 actionLink = `<span class="text-[11px] theme-text-muted px-2 py-1">Servidor NetGuard</span>`;
@@ -1312,7 +1477,9 @@ function initLiveNetworkMonitor() {
           attachPingHandlers();
         }
       } catch {
-        if (subtitleEl) subtitleEl.textContent = "No se pudo completar la búsqueda de equipos.";
+        if (subtitleEl)
+          subtitleEl.textContent =
+            "No se pudo completar la búsqueda de equipos.";
       } finally {
         scanButtons.forEach((b) => {
           b.disabled = false;
@@ -1375,7 +1542,8 @@ function initLiveNetworkMonitor() {
       }
       const ssid = document.getElementById("wifi_qr_ssid")?.value.trim() || "";
       const password = document.getElementById("wifi_qr_password")?.value || "";
-      const security = document.getElementById("wifi_qr_security")?.value || "WPA";
+      const security =
+        document.getElementById("wifi_qr_security")?.value || "WPA";
 
       try {
         const resp = await fetch("/network/wifi-qr", {
@@ -1393,7 +1561,8 @@ function initLiveNetworkMonitor() {
         wifiQrPreview.innerHTML = data.qr_svg;
       } catch (err) {
         if (wifiQrError) {
-          wifiQrError.textContent = err.message || "Error al generar el QR Wi-Fi.";
+          wifiQrError.textContent =
+            err.message || "Error al generar el QR Wi-Fi.";
           wifiQrError.classList.remove("hidden");
         }
       }
@@ -1423,25 +1592,33 @@ function initClientLiveStatusPoller() {
   const refreshBtn = document.getElementById("btn-refresh-client-status");
 
   const colorClasses = {
-    emerald: "p-4 rounded-2xl border space-y-2 bg-emerald-950/70 border-emerald-700/70 text-emerald-200",
-    amber: "p-4 rounded-2xl border space-y-2 bg-amber-950/70 border-amber-700/70 text-amber-200",
+    emerald:
+      "p-4 rounded-2xl border space-y-2 bg-emerald-950/70 border-emerald-700/70 text-emerald-200",
+    amber:
+      "p-4 rounded-2xl border space-y-2 bg-amber-950/70 border-amber-700/70 text-amber-200",
     rose: "p-4 rounded-2xl border space-y-2 bg-rose-950/70 border-rose-700/70 text-rose-200",
     cyan: "p-4 rounded-2xl border space-y-2 bg-cyan-950/70 border-cyan-700/70 text-cyan-200",
-    slate: "p-4 rounded-2xl border space-y-2 bg-slate-800/80 border-slate-700 text-slate-200",
+    slate:
+      "p-4 rounded-2xl border space-y-2 bg-slate-800/80 border-slate-700 text-slate-200",
   };
 
   const fetchUpdate = async () => {
     try {
       const qs = targetIp ? `?ip=${encodeURIComponent(targetIp)}` : "";
-      const resp = await fetch(`/network/api/evaluate${qs}`, { cache: "no-store" });
+      const resp = await fetch(`/network/api/evaluate${qs}`, {
+        cache: "no-store",
+      });
       if (!resp.ok) return;
       const data = await resp.json();
       if (!data.success) return;
 
       if (clockEl) clockEl.textContent = data.evaluated_at;
-      if (bannerEl) bannerEl.className = colorClasses[data.verdict_color] || colorClasses.slate;
+      if (bannerEl)
+        bannerEl.className =
+          colorClasses[data.verdict_color] || colorClasses.slate;
       if (labelEl) labelEl.textContent = data.verdict_label;
-      if (ipPillEl && data.ip_address) ipPillEl.textContent = `IP: ${data.ip_address}`;
+      if (ipPillEl && data.ip_address)
+        ipPillEl.textContent = `IP: ${data.ip_address}`;
       if (reasonEl) reasonEl.textContent = data.reason;
 
       if (identityBoxEl) {
@@ -1472,11 +1649,13 @@ function initClientLiveStatusPoller() {
       if (intBox) {
         if (data.intermittent_status) {
           intBox.classList.remove("hidden");
-          if (intCountdown) intCountdown.textContent = data.intermittent_status.remaining_mmss;
+          if (intCountdown)
+            intCountdown.textContent = data.intermittent_status.remaining_mmss;
           if (intPhaseLabel) {
             intPhaseLabel.textContent = `${data.intermittent_status.phase_label} — ${data.intermittent_status.target}`;
           }
-          if (intBar) intBar.style.width = `${data.intermittent_status.progress_percent}%`;
+          if (intBar)
+            intBar.style.width = `${data.intermittent_status.progress_percent}%`;
         } else {
           intBox.classList.add("hidden");
         }

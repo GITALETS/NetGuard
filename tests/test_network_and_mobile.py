@@ -145,6 +145,8 @@ def test_network_routes_and_mobile_client_portal(client, auth_client, monkeypatc
     mon_html = mon_resp.get_data(as_text=True)
     assert "Monitor en Vivo y Acceso Móvil" in mon_html
     assert "mobile-bottom-nav" in mon_html
+    assert mon_html.count("<a ") + mon_html.count("<a>") + mon_html.count("<a\n") == mon_html.count("</a>")
+    assert mon_html.count("<div ") + mon_html.count("<div>") + mon_html.count("<div\n") == mon_html.count("</div>")
 
     csrf_token = extract_csrf_token(mon_html)
 
