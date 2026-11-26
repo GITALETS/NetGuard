@@ -113,23 +113,28 @@
       </div>
       {% endif %}
 
-      <!-- Comprobación de Conectividad en Tiempo Real (ICMP Ping) -->
+      <!-- Comprobación de Conectividad y Acceso Rápido al Control Familiar -->
       <div class="surface-subtle p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-slate-800">
         <div class="space-y-0.5">
-          <div class="text-xs font-bold theme-text-primary">Verificación de Conexión en Tiempo Real (Ping ICMP)</div>
+          <div class="text-xs font-bold theme-text-primary">Estado de Conexión en la Red</div>
           <div id="detail-ping-result" class="text-xs theme-text-secondary">
-            Comprueba si {{ device.ip_address }} responde en este instante dentro de tu red Wi-Fi o mini-módem.
+            Comprueba si este equipo ({{ device.ip_address }}) responde ahora mismo en el Wi-Fi de la casa.
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          {% if current_user.can_modify %}
+            <button type="button" data-tab-target="tab-family" class="btn-primary text-xs py-1.5 px-3">
+              Pausar / Modo Estudio
+            </button>
+          {% endif %}
           <button
             type="button"
             id="btn-detail-ping"
             data-ip="{{ device.ip_address }}"
             data-device-id="{{ device.id }}"
-            class="btn-primary text-xs py-1.5 px-3"
+            class="btn-secondary text-xs py-1.5 px-3"
           >
-            Probar Conexión Ahora
+            Verificar Señal
           </button>
           <a href="{{ url_for('network.client_status', ip=device.ip_address) }}" class="btn-secondary text-xs py-1.5 px-3">
             Estado en Vivo
@@ -563,23 +568,45 @@
       <div class="surface-subtle p-4 flex items-center justify-between gap-4">
         <div>
           <span class="text-xs theme-text-muted uppercase tracking-wider block font-semibold">Estado actual de este equipo:</span>
-          <span class="text-base font-bold theme-text-primary mt-0.5 inline-block">{{ device.admin_status_label }}</span>
+          <span class="text-base font-bold theme-text-primary mt-0.5 inline-block">
+            {% if family_mode == 'study' %}
+              Modo Estudio y Tareas Activo
+            {% elif family_mode == 'pause' %}
+              Pausa Temporal Activa (Internet Pausado)
+            {% elif family_mode == 'block' %}
+              Internet Apagado / Bloqueado
+            {% elif family_mode == 'pending' %}
+              Pendiente de Revisión
+            {% else %}
+              Internet Libre (Normal)
+            {% endif %}
+          </span>
         </div>
         <div>
-          {{ device_status_badge(device.admin_status, device.admin_status_label) }}
+          {% if family_mode == 'study' %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-blue-950/80 text-blue-300 border border-blue-700/60">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>Modo Estudio Activo
+            </span>
+          {% elif family_mode == 'pause' %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-amber-950/80 text-amber-300 border border-amber-700/60">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>En Pausa Temporal
+            </span>
+          {% else %}
+            {{ device_status_badge(device.admin_status, device.admin_status_label) }}
+          {% endif %}
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
 
         <!-- Opción 1: Internet Libre -->
-        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if device.admin_status == 'authorized' %}border-emerald-600/80 bg-emerald-950/20{% else %}border-slate-800{% endif %}">
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if family_mode == 'allow' %}border-emerald-600/80 bg-emerald-950/20{% else %}border-slate-800{% endif %}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="mode" value="allow" />
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="font-bold text-sm text-emerald-400">Internet Libre (Normal)</span>
-              {% if device.admin_status == 'authorized' %}
+              {% if family_mode == 'allow' %}
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300">Activo Ahora</span>
               {% endif %}
             </div>
@@ -593,13 +620,13 @@
         </form>
 
         <!-- Opción 2: Pausa Temporal -->
-        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if device.admin_status == 'restricted' %}border-amber-600/80 bg-amber-950/20{% else %}border-slate-800{% endif %}">
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if family_mode == 'pause' %}border-amber-600/80 bg-amber-950/20{% else %}border-slate-800{% endif %}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="mode" value="pause" />
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="font-bold text-sm text-amber-400">Pausa Temporal de Internet</span>
-              {% if device.admin_status == 'restricted' %}
+              {% if family_mode == 'pause' %}
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-900/80 text-amber-300">Activo Ahora</span>
               {% endif %}
             </div>
@@ -613,13 +640,18 @@
         </form>
 
         <!-- Opción 3: Modo Estudio -->
-        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border border-slate-800">
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if family_mode == 'study' %}border-blue-500/80 bg-blue-950/25{% else %}border-slate-800{% endif %}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="mode" value="study" />
           <div class="space-y-1.5">
-            <span class="font-bold text-sm text-blue-400">Modo Estudio y Tareas</span>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-blue-400">Modo Estudio y Tareas</span>
+              {% if family_mode == 'study' %}
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-900/80 text-blue-300">Activo Ahora</span>
+              {% endif %}
+            </div>
             <p class="text-xs theme-text-secondary leading-relaxed">
-              Restringe el acceso para permitir únicamente plataformas escolares, bibliotecas digitales y herramientas de tareas.
+              Permite páginas escolares y de tareas, pero bloquea videos y redes sociales (YouTube, TikTok, Instagram, juegos).
             </p>
           </div>
           <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition-colors">
@@ -628,13 +660,13 @@
         </form>
 
         <!-- Opción 4: Apagar Internet -->
-        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if device.admin_status == 'blocked' %}border-rose-600/80 bg-rose-950/20{% else %}border-slate-800{% endif %}">
+        <form method="POST" action="{{ url_for('devices.family_access', device_id=device.id) }}" class="surface-subtle p-5 flex flex-col justify-between space-y-3 rounded-xl border {% if family_mode == 'block' %}border-rose-600/80 bg-rose-950/20{% else %}border-slate-800{% endif %}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="mode" value="block" />
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
               <span class="font-bold text-sm text-rose-400">Bloquear / Apagar Conexión</span>
-              {% if device.admin_status == 'blocked' %}
+              {% if family_mode == 'block' %}
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-900/80 text-rose-300">Bloqueado</span>
               {% endif %}
             </div>

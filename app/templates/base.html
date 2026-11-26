@@ -73,7 +73,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
           </svg>
           <span class="flex-1">Permisos de Acceso</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-semibold">Fase 2</span>
         </a>
 
         <a href="{{ url_for('schedules.index') }}" class="nav-item-link {% if ep.startswith('schedules.') %}active{% endif %}">
@@ -81,7 +80,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
           <span class="flex-1">Horarios de Uso</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-semibold">Fase 2</span>
         </a>
 
         <a href="{{ url_for('audit.index') }}" class="nav-item-link {% if ep.startswith('audit.') %}active{% endif %}">
@@ -189,11 +187,9 @@
       </main>
 
       <!-- Pie de página discreto con espacio inferior en móvil para la barra rápida -->
-      <footer class="px-3.5 sm:px-5 lg:px-8 py-4 pb-24 lg:pb-4 border-t border-slate-800/80 text-xs theme-text-muted flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl w-full mx-auto">
-        <span><strong>Proyecto de Tesis:</strong> {{ PROJECT_TITLE }}</span>
-        <span class="whitespace-nowrap">
-          Versión <strong>1.0</strong> &bull; Base de Datos: <strong>MySQL</strong>
-        </span>
+      <footer class="px-3.5 sm:px-5 lg:px-8 py-3 pb-24 lg:pb-4 border-t border-slate-800/40 text-[11px] theme-text-muted flex items-center justify-between gap-2 max-w-7xl w-full mx-auto">
+        <span>NetGuard Home</span>
+        <span>Control Wi-Fi Familiar</span>
       </footer>
     </div>
   </div>

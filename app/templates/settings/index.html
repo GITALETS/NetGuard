@@ -128,17 +128,17 @@
     {% endif %}
   </div>
 
-  <!-- Diagnóstico Técnico de Tesis en Desplegable Limpio -->
+  <!-- Información técnica avanzada en desplegable discreto -->
   <details class="surface-card p-5">
     <summary class="cursor-pointer text-sm font-bold theme-text-secondary hover:underline inline-flex items-center gap-1.5">
-      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-      Información técnica para evaluación de Tesis (Arquitectura, BD y Directivas)
+      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+      Información técnica avanzada del sistema
     </summary>
     <div class="mt-4 pt-4 border-t border-slate-800 space-y-4 text-xs">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="surface-subtle p-4 space-y-1.5">
-          <div class="font-bold theme-text-primary">Proyecto Universitario:</div>
-          <div class="theme-text-secondary">{{ app_info.project_title }}</div>
+          <div class="font-bold theme-text-primary">Aplicación:</div>
+          <div class="theme-text-secondary">NetGuard Home &bull; Gestión Wi-Fi Familiar</div>
           <div class="theme-text-muted pt-1">
             Versión: <span class="font-mono-code">{{ app_info.version }}</span> &bull; Python <span class="font-mono-code">{{ app_info.python_version }}</span> &bull;
             CSRF: <strong>{{ 'Activo' if app_info.csrf_enabled else 'Inactivo' }}</strong>

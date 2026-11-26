@@ -793,17 +793,22 @@ def evaluate_live_device_access(
         )
     elif device.admin_status == "restricted" or restricting_policy is not None or intermittent_status is not None:
         verdict_code = "restricted"
-        verdict_label = "Acceso Supervisado / Limitado"
-        verdict_color = "cyan"
-        if intermittent_status:
-            reason = (
-                f"En ventana activa de intermitencia para '{intermittent_status['target']}' "
-                f"(siguiente pausa en {intermittent_status['remaining_mmss']})."
-            )
-        elif restricting_policy:
-            reason = f"Política supervisada '{restricting_policy.name}': {restricting_policy.navigation_profile or restricting_policy.target_domain or 'Filtro familiar activo'}."
+        if restricting_policy and restricting_policy.observations == "[AUTO_FAMILY_CONTROL]" and not intermittent_status:
+            verdict_label = "Modo Estudio y Tareas Activo"
+            verdict_color = "cyan"
+            reason = f"'{device.name}' opera en Modo Estudio: se permiten páginas escolares y se bloquean videos o redes sociales."
         else:
-            reason = "Este dispositivo opera en modo supervisado (Pausa / Modo Estudio)."
+            verdict_label = "Acceso Supervisado / Limitado"
+            verdict_color = "cyan"
+            if intermittent_status:
+                reason = (
+                    f"En ventana activa de intermitencia para '{intermittent_status['target']}' "
+                    f"(siguiente pausa en {intermittent_status['remaining_mmss']})."
+                )
+            elif restricting_policy:
+                reason = f"Política supervisada '{restricting_policy.name}': {restricting_policy.navigation_profile or restricting_policy.target_domain or 'Filtro familiar activo'}."
+            else:
+                reason = "Este dispositivo opera en modo supervisado (Pausa / Modo Estudio)."
     else:
         verdict_code = "allowed"
         verdict_label = "Internet Libre (Acceso Autorizado)"

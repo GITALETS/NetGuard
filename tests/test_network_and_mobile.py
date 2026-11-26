@@ -215,17 +215,38 @@ def test_intermediary_proxy_decision_engine(app, auth_client):
         assert evaluate_proxy_request("172.20.10.9", "m.youtube.com")["allowed"] is False
         assert evaluate_proxy_request("172.20.10.9", "rr3---sn.googlevideo.com")["allowed"] is False
         assert evaluate_proxy_request("172.20.10.9", "www.tiktok.com")["allowed"] is False
+        assert evaluate_proxy_request("172.20.10.9", "v16.tiktokcdn-us.com")["allowed"] is False
         assert evaluate_proxy_request("172.20.10.9", "es.wikipedia.org")["allowed"] is True
 
-    # 4. Pausa Temporal vía Control Familiar: detiene todo Internet
-    auth_client.post(
+    # 4. Verificar que la vista Control Familiar muestra Modo Estudio activo (y NO Pausa Temporal)
+    study_resp = auth_client.post(
+        f"/devices/{dev_id}/family-access",
+        data={"csrf_token": csrf_tok, "mode": "study"},
+        follow_redirects=True,
+    )
+    study_html = study_resp.get_data(as_text=True)
+    assert "Modo Estudio y Tareas Activo" in study_html
+    assert "En Pausa Temporal" not in study_html
+
+    # 5. Pausa Temporal vía Control Familiar: detiene todo Internet y marca En Pausa Temporal
+    pause_resp = auth_client.post(
         f"/devices/{dev_id}/family-access",
         data={"csrf_token": csrf_tok, "mode": "pause"},
         follow_redirects=True,
     )
+    pause_html = pause_resp.get_data(as_text=True)
+    assert "Pausa Temporal Activa" in pause_html
+    assert "Modo Estudio Activo" not in pause_html
     with app.app_context():
         assert evaluate_proxy_request("172.20.10.9", "www.google.com")["allowed"] is False
         assert evaluate_proxy_request("172.20.10.9", "es.wikipedia.org")["allowed"] is False
+
+    # 6. Verificar que no aparece texto academico en pie de pagina ni badges Fase 2
+    assert "Proyecto de Tesis" not in study_html
+    assert "Fase 2" not in study_html
+    dash_html = auth_client.get("/").get_data(as_text=True)
+    assert "Proyecto de Tesis" not in dash_html
+    assert "Control Wi-Fi del Hogar" in dash_html
 
 
 def test_wifi_qr_generator_and_proxy_pac(auth_client, client):

@@ -46,11 +46,55 @@ _proxy_events: deque = deque(maxlen=50)
 _proxy_server_instance: Optional[socketserver.ThreadingTCPServer] = None
 _proxy_server_port: int = int(os.environ.get("NETGUARD_PROXY_PORT", "8888"))
 _proxy_running: bool = False
+_local_ips_cache: Tuple[float, Tuple[str, ...]] = (0.0, ())
+
+
+def _get_dynamic_server_ips(configured_ips: Tuple[str, ...] = ()) -> Tuple[str, ...]:
+    """Devuelve las IPs locales activas (con cache de 5s) para permitir el portal tras cambios de Wi-Fi."""
+    global _local_ips_cache
+    now_ts = time.monotonic()
+    cached_ts, cached_ips = _local_ips_cache
+    if (now_ts - cached_ts) < 5.0 and cached_ips:
+        return tuple(set(configured_ips) | set(cached_ips))
+
+    found = set(configured_ips) | {"127.0.0.1", "localhost", "::1"}
+    try:
+        for res in socket.getaddrinfo(socket.gethostname(), None, family=socket.AF_INET):
+            ip_val = res[4][0]
+            if ip_val:
+                found.add(ip_val)
+    except Exception:
+        pass
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        found.add(sock.getsockname()[0])
+        sock.close()
+    except Exception:
+        pass
+
+    frozen = tuple(found)
+    _local_ips_cache = (now_ts, frozen)
+    return frozen
 
 # Familias de dominios asociados cuando una regla apunta a un servicio especifico
 DOMAIN_COMPANIONS: Dict[str, Tuple[str, ...]] = {
     "youtube.com": ("youtube.com", "youtu.be", "googlevideo.com", "ytimg.com", "yt3.ggpht.com", "youtube-nocookie.com", "youtubei.googleapis.com"),
-    "tiktok.com": ("tiktok.com", "tiktokcdn.com", "tiktokv.com", "musical.ly", "byteoversea.com"),
+    "tiktok.com": (
+        "tiktok.com",
+        "tiktokcdn.com",
+        "tiktokcdn-us.com",
+        "tiktokv.com",
+        "tiktokv.us",
+        "tiktokw.us",
+        "musical.ly",
+        "muscdn.com",
+        "byteoversea.com",
+        "bytedance.com",
+        "byteimg.com",
+        "ibytedtos.com",
+        "ttlivecdn.com",
+    ),
     "roblox.com": ("roblox.com", "rbxcdn.com", "robloxlabs.com"),
     "facebook.com": ("facebook.com", "fbcdn.net", "fbsbx.com", "messenger.com"),
     "instagram.com": ("instagram.com", "cdninstagram.com"),
@@ -70,7 +114,16 @@ STUDY_BLOCKED_DOMAINS: Tuple[str, ...] = (
     "youtubei.googleapis.com",
     "tiktok.com",
     "tiktokcdn.com",
+    "tiktokcdn-us.com",
     "tiktokv.com",
+    "tiktokv.us",
+    "tiktokw.us",
+    "muscdn.com",
+    "byteoversea.com",
+    "bytedance.com",
+    "byteimg.com",
+    "ibytedtos.com",
+    "ttlivecdn.com",
     "instagram.com",
     "cdninstagram.com",
     "facebook.com",
@@ -349,7 +402,8 @@ class _IntermediaryTCPHandler(socketserver.BaseRequestHandler):
     def _safe_eval(self, client_ip: str, host: str, port: int) -> Dict[str, Any]:
         app = getattr(self.server, "flask_app", None)
         flask_port = getattr(self.server, "flask_port", 5000)
-        server_ips = getattr(self.server, "server_ips", ())
+        configured_ips = getattr(self.server, "server_ips", ())
+        server_ips = _get_dynamic_server_ips(configured_ips)
         if app is None:
             return {"allowed": True, "action_code": "ALLOW", "reason": "", "device_name": None}
         with app.app_context():
@@ -434,7 +488,7 @@ class _IntermediaryTCPHandler(socketserver.BaseRequestHandler):
 
         method, target, version = parts[0].upper(), parts[1], parts[2]
         proxy_port = getattr(self.server, "proxy_port", 8888)
-        server_ips = set(getattr(self.server, "server_ips", ())) | {"127.0.0.1", "localhost"}
+        server_ips = set(_get_dynamic_server_ips(getattr(self.server, "server_ips", ())))
 
         if method == "CONNECT":
             # Formato CONNECT host:port HTTP/1.1

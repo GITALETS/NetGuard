@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initConfirmationModal();
   initPolicyFormHelper();
   initScheduleFormHelper();
-  initSubmitLoadingIndicator();
   initPasswordToggles();
   initDeviceDetailTabs();
   initIpSegmentedInputs();
@@ -19,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initTableActionMenus();
   initLiveNetworkMonitor();
   initClientLiveStatusPoller();
+  initSubmitLoadingIndicator();
 });
 
 /**
@@ -147,10 +147,43 @@ function initConfirmationModal() {
 }
 
 /**
- * Adapta los campos del formulario de políticas según la categoría seleccionada.
+ * Muestra u oculta un aviso de validación en línea justo encima de los botones del formulario.
+ */
+function _showFormInlineError(form, message, focusEl) {
+  if (!form) return;
+  let box = form.querySelector(".js-inline-validation-alert");
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "js-inline-validation-alert p-3 rounded-xl bg-rose-950/70 border border-rose-700/70 text-xs font-medium text-rose-200";
+    const submitRow = form.querySelector('button[type="submit"]')?.closest("div.pt-4") || form;
+    if (submitRow && submitRow.parentElement === form) {
+      form.insertBefore(box, submitRow);
+    } else {
+      form.prepend(box);
+    }
+  }
+  box.textContent = message;
+  box.classList.remove("hidden");
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  if (focusEl && typeof focusEl.focus === "function") {
+    focusEl.focus();
+  }
+}
+
+function _clearFormInlineError(form) {
+  const box = form?.querySelector(".js-inline-validation-alert");
+  if (box) {
+    box.textContent = "";
+    box.classList.add("hidden");
+  }
+}
+
+/**
+ * Adapta los campos del formulario de políticas según la categoría seleccionada y valida coherencia.
  */
 function initPolicyFormHelper() {
   const typeSelect = document.getElementById("policy_type_select");
+  const validFromInput = document.getElementById("valid_from");
   const validUntilInput = document.getElementById("valid_until_input");
   const validUntilHint = document.getElementById("valid_until_hint");
   const navProfileGroup = document.getElementById("nav_profile_group");
@@ -204,6 +237,9 @@ function initPolicyFormHelper() {
     }
 
     if (intermittentCheckbox && intermittentSettings) {
+      if (typeVal === "intermittent_intermediary") {
+        intermittentCheckbox.checked = true;
+      }
       const isInter = intermittentCheckbox.checked || typeVal === "intermittent_intermediary";
       if (isInter) {
         intermittentSettings.classList.remove("hidden");
@@ -220,10 +256,82 @@ function initPolicyFormHelper() {
 
   typeSelect.addEventListener("change", updateFields);
   updateFields();
+
+  // Validación previa en Front-End para evitar envíos incompletos o contradictorios
+  const form = typeSelect.closest("form");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      _clearFormInlineError(form);
+      const nameInput = document.getElementById("name");
+      const navProfileInput = document.getElementById("navigation_profile");
+      const targetDomainInput = document.getElementById("target_domain");
+      const activeMinsInput = document.getElementById("interval_active_minutes");
+      const pauseMinsInput = document.getElementById("interval_pause_minutes");
+
+      const nameVal = (nameInput?.value || "").trim();
+      if (nameVal.length < 3) {
+        e.preventDefault();
+        _showFormInlineError(form, "Escribe un nombre de al menos 3 letras para identificar esta regla.", nameInput);
+        return;
+      }
+
+      const typeVal = typeSelect.value;
+      const actionVal = actionSelect?.value || "allow";
+      const scopeVal = targetScopeSelect?.value || "all_traffic";
+      const domainVal = (targetDomainInput?.value || "").trim();
+      const navProfileVal = (navProfileInput?.value || "").trim();
+
+      if (typeVal === "navigation_restriction") {
+        if (actionVal === "allow") {
+          e.preventDefault();
+          _showFormInlineError(form, "Para restringir páginas debes elegir 'Limitar / Con filtro familiar' o 'Pausar / Bloquear acceso'.", actionSelect);
+          return;
+        }
+        if (!navProfileVal && !domainVal) {
+          e.preventDefault();
+          _showFormInlineError(form, "Indica qué sitios o usos deseas limitar en este filtro familiar.", navProfileInput);
+          return;
+        }
+      }
+
+      if (scopeVal === "specific_domain" && !domainVal) {
+        e.preventDefault();
+        _showFormInlineError(form, "Escribe el dominio o página web que deseas controlar (ejemplo: youtube.com o tiktok.com).", targetDomainInput);
+        return;
+      }
+
+      const vfVal = (validFromInput?.value || "").trim();
+      const vuVal = (validUntilInput?.value || "").trim();
+      if (!vfVal) {
+        e.preventDefault();
+        _showFormInlineError(form, "Elige la fecha y hora desde cuando empieza la regla.", validFromInput);
+        return;
+      }
+      if (typeVal === "temporary_access" && !vuVal) {
+        e.preventDefault();
+        _showFormInlineError(form, "Para un Permiso Temporal es obligatorio indicar hasta cuándo estará activo.", validUntilInput);
+        return;
+      }
+      if (vfVal && vuVal && vuVal <= vfVal) {
+        e.preventDefault();
+        _showFormInlineError(form, "La fecha de finalización debe ser posterior a la fecha de inicio.", validUntilInput);
+        return;
+      }
+
+      if (intermittentCheckbox?.checked || typeVal === "intermittent_intermediary") {
+        const am = Number(activeMinsInput?.value || 0);
+        const pm = Number(pauseMinsInput?.value || 0);
+        if (am < 1 || am > 720 || pm < 1 || pm > 720) {
+          e.preventDefault();
+          _showFormInlineError(form, "Los minutos de uso y de descanso deben estar entre 1 y 720.", activeMinsInput);
+        }
+      }
+    });
+  }
 }
 
 /**
- * Analiza en tiempo real la hora inicial y final de un horario y ofrece botones rápidos de días.
+ * Analiza en tiempo real la hora inicial y final de un horario, ofrece botones rápidos y valida antes de guardar.
  */
 function initScheduleFormHelper() {
   const startInput = document.getElementById("schedule_start_time");
@@ -257,7 +365,7 @@ function initScheduleFormHelper() {
 
     if (startMins === endMins) {
       previewBox.innerHTML =
-        '<strong>Atención:</strong> La hora de inicio y de fin no pueden ser exactamente la misma.';
+        '<strong class="text-rose-400">Atención:</strong> La hora de inicio y de fin no pueden ser exactamente la misma.';
       return;
     }
 
@@ -288,6 +396,35 @@ function initScheduleFormHelper() {
   startInput.addEventListener("input", updatePreview);
   endInput.addEventListener("input", updatePreview);
   updatePreview();
+
+  // Validación previa en Front-End para horarios
+  const form = startInput.closest("form");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      _clearFormInlineError(form);
+      const labelInput = document.getElementById("label");
+      const labelVal = (labelInput?.value || "").trim();
+      if (labelVal.length < 3) {
+        e.preventDefault();
+        _showFormInlineError(form, "Escribe un nombre de al menos 3 letras para reconocer este horario.", labelInput);
+        return;
+      }
+
+      const checkedDays = form.querySelectorAll('input[name="days_of_week"]:checked');
+      if (!checkedDays.length) {
+        e.preventDefault();
+        _showFormInlineError(form, "Selecciona al menos un día de la semana (o usa los botones rápidos como 'Todos los días').");
+        return;
+      }
+
+      const s = (startInput.value || "").trim();
+      const endV = (endInput.value || "").trim();
+      if (!s || !endV || s === endV) {
+        e.preventDefault();
+        _showFormInlineError(form, "Elige horas válidas y diferentes para el inicio y el fin del horario.", endInput);
+      }
+    });
+  }
 }
 
 /**
@@ -295,7 +432,10 @@ function initScheduleFormHelper() {
  */
 function initSubmitLoadingIndicator() {
   document.querySelectorAll("form").forEach((form) => {
-    form.addEventListener("submit", () => {
+    form.addEventListener("submit", (e) => {
+      if (e.defaultPrevented) {
+        return;
+      }
       if (form.dataset.confirmMessage && form.dataset.confirmed !== "true") {
         return;
       }
@@ -563,15 +703,25 @@ function isPrivateRfc1918Ip(parts) {
 }
 
 /**
- * Validaciones reactivas en Front-End para Direcciones IP RFC 1918 y Direcciones MAC.
+ * Validaciones reactivas en Front-End para Direcciones IP RFC 1918, Subred CIDR y Direcciones MAC.
  */
 function initLiveNetworkValidators() {
-  const scopeInput = document.getElementById("network_scope");
-  if (scopeInput) {
-    scopeInput.addEventListener("input", () => {
-      scopeInput.setAttribute("data-auto-scope", "false");
-    });
-  }
+  const scopeInput = document.getElementById("network_scope") || document.getElementById("editor_network_scope");
+
+  const isValidCidr = (raw) => {
+    const parts = (raw || "").trim().split("/");
+    if (parts.length !== 2) return false;
+    const octs = parts[0].split(".");
+    const prefix = Number(parts[1]);
+    return (
+      octs.length === 4 &&
+      octs.every((p) => p !== "" && !isNaN(p) && Number(p) >= 0 && Number(p) <= 255) &&
+      !isNaN(prefix) &&
+      Number.isInteger(prefix) &&
+      prefix >= 0 &&
+      prefix <= 32
+    );
+  };
 
   // Validación reactiva de IP
   const ipInputs = document.querySelectorAll('[data-validate-ip="true"], #ip_address, #editor_ip_address');
@@ -585,7 +735,7 @@ function initLiveNetworkValidators() {
                         input.parentElement?.querySelector("#ip_feedback_box") ||
                         document.getElementById("ip_feedback_box");
 
-    input.addEventListener("input", () => {
+    const validateCurrentIp = () => {
       const val = input.value.trim();
       if (!val) {
         visualElement.classList.remove("border-emerald-500", "border-rose-500", "border-amber-500");
@@ -593,7 +743,7 @@ function initLiveNetworkValidators() {
           feedbackBox.className = "text-[11px] mt-1 theme-text-muted";
           feedbackBox.textContent = "Ingrese la dirección IP privada del dispositivo.";
         }
-        return;
+        return false;
       }
 
       const parts = val.split(".");
@@ -606,7 +756,7 @@ function initLiveNetworkValidators() {
           feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-medium";
           feedbackBox.textContent = "Formato IP incompleto. Deben completarse los 4 números (0-255).";
         }
-        return;
+        return false;
       }
 
       // Si el ámbito está en modo automático y se ingresa una IP privada de otro módem/hotspot, adaptar a /24
@@ -623,6 +773,7 @@ function initLiveNetworkValidators() {
       }
 
       const lastOctet = Number(parts[3]);
+      const currentScope = scopeInput ? scopeInput.value.trim() : "";
       if (lastOctet === 1) {
         visualElement.classList.add("border-amber-500");
         visualElement.classList.remove("border-emerald-500", "border-rose-500");
@@ -637,18 +788,73 @@ function initLiveNetworkValidators() {
           feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-semibold";
           feedbackBox.textContent = "Dirección no asignable: .0 es la dirección de red y .255 es la dirección de broadcast.";
         }
+        return false;
+      } else if (currentScope && isValidCidr(currentScope) && !isIpInCidr(val, currentScope)) {
+        visualElement.classList.add("border-rose-500");
+        visualElement.classList.remove("border-emerald-500", "border-amber-500");
+        if (feedbackBox) {
+          feedbackBox.className = "text-[11px] mt-1 text-rose-400 font-semibold";
+          feedbackBox.textContent = `La IP ${val} no pertenece a la subred ${currentScope}.`;
+        }
+        return false;
       } else {
         visualElement.classList.add("border-emerald-500");
         visualElement.classList.remove("border-rose-500", "border-amber-500");
         if (feedbackBox) {
           feedbackBox.className = "text-[11px] mt-1 text-emerald-400 font-medium";
-          const currentScope = scopeInput ? scopeInput.value.trim() : "";
           feedbackBox.textContent = currentScope
             ? `Dirección IP válida para la subred ${currentScope}.`
             : "Dirección IP válida y conforme a rangos privados RFC 1918.";
         }
       }
-    });
+      return true;
+    };
+
+    input.addEventListener("input", validateCurrentIp);
+
+    if (scopeInput) {
+      scopeInput.addEventListener("input", () => {
+        scopeInput.setAttribute("data-auto-scope", "false");
+        const scopeVal = scopeInput.value.trim();
+        if (!scopeVal || isValidCidr(scopeVal)) {
+          scopeInput.classList.remove("border-rose-500");
+        } else {
+          scopeInput.classList.add("border-rose-500");
+        }
+        if (input.value.trim()) {
+          validateCurrentIp();
+        }
+      });
+    }
+
+    const form = input.closest("form");
+    if (form && !form.dataset.confirmMessage) {
+      form.addEventListener("submit", (e) => {
+        _clearFormInlineError(form);
+        const nameField = form.querySelector('[name="name"]');
+        if (nameField && (nameField.value || "").trim().length < 2) {
+          e.preventDefault();
+          _showFormInlineError(form, "Escribe un nombre reconocible para este equipo.", nameField);
+          return;
+        }
+        if (!validateCurrentIp()) {
+          e.preventDefault();
+          _showFormInlineError(form, "Revisa la dirección IP: debe tener 4 números válidos y pertenecer al ámbito de red configurado.", visualElement);
+          return;
+        }
+        if (scopeInput && !isValidCidr(scopeInput.value)) {
+          e.preventDefault();
+          _showFormInlineError(form, "El ámbito de red (CIDR) debe tener formato válido (ejemplo: 192.168.1.0/24).", scopeInput);
+          return;
+        }
+        const macField = form.querySelector('[name="mac_address"]');
+        const macRaw = (macField?.value || "").replace(/[^0-9A-Fa-f]/g, "");
+        if (macField && macRaw.length > 0 && macRaw.length !== 12) {
+          e.preventDefault();
+          _showFormInlineError(form, "La dirección MAC es opcional, pero si la escribes debe tener exactamente 12 caracteres hexadecimales.", macField);
+        }
+      });
+    }
   });
 
   // Validación y auto-formateo reactivo de MAC
@@ -964,7 +1170,7 @@ function initLiveNetworkMonitor() {
         const badge = card ? card.querySelector(".host-online-badge") : null;
         const orig = btn.textContent;
         btn.disabled = true;
-        btn.textContent = "Sondeando...";
+        btn.textContent = "Verificando...";
 
         try {
           const resp = await fetch("/network/ping", {
@@ -1011,10 +1217,10 @@ function initLiveNetworkMonitor() {
       scanButtons.forEach((b) => {
         b.disabled = true;
         b.dataset.origText = b.textContent;
-        b.textContent = "Escaneando Wi-Fi...";
+        b.textContent = "Buscando equipos...";
       });
       if (subtitleEl) {
-        subtitleEl.textContent = "Realizando barrido ICMP paralelo y leyendo caché ARP física del mini-módem...";
+        subtitleEl.textContent = "Buscando celulares, computadoras y pantallas conectadas a tu red Wi-Fi...";
       }
 
       try {
@@ -1030,11 +1236,11 @@ function initLiveNetworkMonitor() {
 
         const netScope = data.network_info?.network_scope || "192.168.1.0/24";
         if (subtitleEl) {
-          subtitleEl.textContent = `Escaneo completado a las ${data.scanned_at} en ${data.network_info.scan_cidr}: ${data.online_count} activo(s), ${data.discovered.length} detectado(s).`;
+          subtitleEl.textContent = `Actualizado a las ${data.scanned_at}: ${data.online_count} conectado(s) ahora, ${data.discovered.length} visible(s).`;
         }
 
         if (!data.discovered.length) {
-          grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">No se detectaron equipos adicionales en esta subred.</div>`;
+          grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">No se detectaron otros equipos en este momento.</div>`;
         } else {
           grid.innerHTML = data.discovered
             .map((host) => {
@@ -1044,24 +1250,28 @@ function initLiveNetworkMonitor() {
                 : "bg-slate-800 theme-text-muted";
               const badgeTxt = host.is_online
                 ? host.latency_ms !== null
-                  ? `En línea (${host.latency_ms} ms)`
-                  : "En línea"
-                : "ARP en reposo";
+                  ? `Conectado (${host.latency_ms} ms)`
+                  : "Conectado"
+                : "En reposo";
 
               const roleTag = host.is_this_server
-                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">Esta PC Servidor</span>'
+                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">Esta PC</span>'
                 : host.is_gateway
-                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/60">Módem / Gateway</span>'
+                ? '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/60">Módem Wi-Fi</span>'
                 : "";
 
               const dbTag = host.registered_device
-                ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">Registrado: ${_escapeHtml(host.registered_device.internal_code)} (${_escapeHtml(host.registered_device.admin_status_label)})</span>`
-                : '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 theme-text-secondary">Sin registrar en NetGuard</span>';
+                ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">En tu lista (${_escapeHtml(host.registered_device.admin_status_label)})</span>`
+                : '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 theme-text-secondary">Nuevo en Wi-Fi</span>';
 
               const canModify = grid.getAttribute("data-can-modify") === "true";
               let actionLink = "";
               if (host.registered_device) {
-                actionLink = `<a href="/devices/${encodeURIComponent(host.registered_device.id)}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">Administrar Equipo</a>`;
+                const devHref = canModify
+                  ? `/devices/${encodeURIComponent(host.registered_device.id)}?tab=family`
+                  : `/devices/${encodeURIComponent(host.registered_device.id)}`;
+                const devBtnLabel = canModify ? "Controlar Internet" : "Ver Ficha";
+                actionLink = `<a href="${devHref}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">${devBtnLabel}</a>`;
               } else if (canModify && !host.is_gateway) {
                 const params = new URLSearchParams({
                   ip: host.ip_address || "",
@@ -1085,12 +1295,12 @@ function initLiveNetworkMonitor() {
                       <span class="host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${badgeCls}">${_escapeHtml(badgeTxt)}</span>
                     </div>
                     <div class="text-xs theme-text-muted space-y-1">
-                      <div>MAC Física: <span class="font-mono-code theme-text-secondary">${_escapeHtml(host.mac_address || "Local / Sin caché ARP")}</span></div>
+                      ${host.mac_address ? `<div>MAC: <span class="font-mono-code theme-text-secondary">${_escapeHtml(host.mac_address)}</span></div>` : ""}
                       <div class="flex flex-wrap gap-1.5 pt-0.5">${roleTag}${dbTag}</div>
                     </div>
                   </div>
                   <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-                    <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="${_escapeHtml(host.ip_address)}">Probar Ping</button>
+                    <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="${_escapeHtml(host.ip_address)}">Verificar Señal</button>
                     ${actionLink}
                   </div>
                 </div>
@@ -1100,11 +1310,11 @@ function initLiveNetworkMonitor() {
           attachPingHandlers();
         }
       } catch {
-        if (subtitleEl) subtitleEl.textContent = "No se pudo completar el escaneo de red.";
+        if (subtitleEl) subtitleEl.textContent = "No se pudo completar la búsqueda de equipos.";
       } finally {
         scanButtons.forEach((b) => {
           b.disabled = false;
-          b.textContent = b.dataset.origText || "Escanear Mini-Módem / Wi-Fi";
+          b.textContent = b.dataset.origText || "Buscar Equipos";
         });
       }
     };

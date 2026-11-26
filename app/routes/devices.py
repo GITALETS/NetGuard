@@ -235,11 +235,32 @@ def detail(device_id: int):
     )
     adapter_info = get_router_adapter().get_diagnostics()
 
+    family_mode = "allow"
+    if device.admin_status == "blocked":
+        family_mode = "block"
+    elif device.admin_status == "pending":
+        family_mode = "pending"
+    elif device.admin_status == "restricted":
+        active_auto_policy = (
+            AccessPolicy.query.filter_by(
+                device_id=device.id,
+                observations="[AUTO_FAMILY_CONTROL]",
+                status="active",
+            )
+            .order_by(AccessPolicy.id.desc())
+            .first()
+        )
+        if active_auto_policy and active_auto_policy.action == "restrict":
+            family_mode = "study"
+        else:
+            family_mode = "pause"
+
     return render_template(
         "devices/detail.html",
         device=device,
         form_data=form_data,
         active_tab=active_tab,
+        family_mode=family_mode,
         device_types=device_types,
         device_profiles=device_profiles,
         admin_statuses=admin_statuses,

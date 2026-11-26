@@ -1,38 +1,159 @@
 {% extends "base.html" %}
 {% block title %}Monitor de Red en Vivo{% endblock %}
 {% block page_header %}Monitor en Vivo y Acceso Móvil{% endblock %}
-{% block page_subtitle %}Conecta tu teléfono al mismo Wi-Fi o mini-módem, descubre equipos reales y verifica respuestas ICMP en tiempo real{% endblock %}
+{% block page_subtitle %}Mira quién está conectado a tu Wi-Fi y entra fácilmente desde cualquier teléfono{% endblock %}
 
 {% block header_actions %}
-  <a href="{{ url_for('network.client_status') }}" class="btn-secondary">
-    Ver Estado de mi IP
+  <a href="{{ url_for('network.client_status') }}" class="btn-secondary text-xs sm:text-sm">
+    Estado de mi Teléfono
   </a>
-  <button type="button" id="btn-live-scan-top" class="btn-primary inline-flex items-center gap-1.5">
+  <button type="button" id="btn-live-scan-top" class="btn-primary text-xs sm:text-sm inline-flex items-center gap-1.5">
     <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-    <span>Escanear Red Ahora</span>
+    <span>Buscar Equipos</span>
   </button>
 {% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-5">
 
-  <!-- Bloque 1: Acceso desde Teléfonos (Códigos QR Locales Sin Internet Externo) -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-    <!-- QR 1: Panel de Administración Móvil -->
-    <div class="surface-card p-5 flex flex-col sm:flex-row items-center gap-5">
+  <!-- Barra de Wi-Fi Actual y Aviso solo si cambió de módem/hotspot -->
+  <div class="surface-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-700/60 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+      </div>
+      <div>
+        <div class="text-sm font-bold theme-text-primary">
+          {% if net_info.wifi_ssid %}
+            Conectado a Wi-Fi: {{ net_info.wifi_ssid }}
+          {% else %}
+            Red Local Detectada ({{ net_info.network_scope }})
+          {% endif %}
+        </div>
+        <div class="text-xs theme-text-secondary">
+          {% if proxy_status.running %}
+            Filtro web en vivo activo &bull; Servidor <code class="font-mono-code text-cyan-400">{{ net_info.local_ip }}</code> Puerto <code class="font-mono-code text-cyan-400">{{ proxy_status.port }}</code>
+          {% else %}
+            Monitor de red listo para buscar equipos conectados
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if configured_scope != net_info.network_scope and current_user.can_modify and net_info.is_lan_reachable %}
+      <form method="POST" action="{{ url_for('network.adopt_subnet') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="btn-primary text-xs">
+          Adaptar a este Wi-Fi ({{ net_info.network_scope }})
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <!-- Bloque 1: Equipos Conectados Ahora (Lo más importante para la familia) -->
+  <div class="surface-card p-5 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div>
+        <h2 class="text-base font-bold theme-text-primary">Equipos Detectados en tu Wi-Fi</h2>
+        <p id="scan-status-subtitle" class="text-xs theme-text-secondary">
+          <span id="scan-online-count">{{ initial_scan.online_count }}</span> conectado(s) ahora,
+          <span id="scan-total-count">{{ initial_scan.discovered|length }}</span> visible(s) ({{ initial_scan.scanned_at }}).
+        </p>
+      </div>
+      <button type="button" id="btn-live-scan" class="btn-primary text-xs shrink-0">
+        Buscar Equipos Conectados
+      </button>
+    </div>
+
+    <div id="discovered-devices-grid" data-can-modify="{{ 'true' if current_user.can_modify else 'false' }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {% for host in initial_scan.discovered %}
+        <div class="surface-subtle p-4 flex flex-col justify-between space-y-3 border {% if host.is_online %}border-emerald-700/50{% else %}border-slate-800{% endif %}" data-host-ip="{{ host.ip_address }}">
+          <div class="space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-bold text-sm theme-text-primary truncate">
+                  {% if host.registered_device %}
+                    {{ host.registered_device.name }}
+                  {% else %}
+                    {{ host.suggested_name }}
+                  {% endif %}
+                </div>
+                <div class="font-mono-code text-xs theme-text-secondary mt-0.5">{{ host.ip_address }}</div>
+              </div>
+              <span class="host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 {% if host.is_online %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-slate-800 theme-text-muted{% endif %}">
+                {% if host.is_online %}
+                  Conectado{% if host.latency_ms is not none %} ({{ host.latency_ms }} ms){% endif %}
+                {% else %}
+                  En reposo
+                {% endif %}
+              </span>
+            </div>
+
+            <div class="text-xs theme-text-muted space-y-1">
+              {% if host.mac_address %}
+                <div>MAC: <span class="font-mono-code theme-text-secondary">{{ host.mac_address }}</span></div>
+              {% endif %}
+              <div class="flex flex-wrap gap-1.5 pt-0.5">
+                {% if host.is_this_server %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">Esta PC</span>
+                {% elif host.is_gateway %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/60">Módem Wi-Fi</span>
+                {% endif %}
+                {% if host.registered_device %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
+                    En tu lista ({{ host.registered_device.admin_status_label }})
+                  </span>
+                {% else %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 theme-text-secondary">
+                    Nuevo en Wi-Fi
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+            <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="{{ host.ip_address }}">
+              Verificar Señal
+            </button>
+            {% if host.registered_device %}
+              <a href="{{ url_for('devices.detail', device_id=host.registered_device.id, tab='family' if current_user.can_modify else 'ficha') }}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">
+                {% if current_user.can_modify %}Controlar Internet{% else %}Ver Ficha{% endif %}
+              </a>
+            {% elif current_user.can_modify and not host.is_gateway %}
+              <a
+                href="{{ url_for('devices.create', ip=host.ip_address, mac=host.mac_address or '', hostname=host.hostname or '', scope=net_info.network_scope, name=host.suggested_name, device_type=host.suggested_type) }}"
+                class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center"
+              >
+                + Registrar Equipo
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="col-span-full py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
+          Presiona "Buscar Equipos Conectados" para ver quién está conectado al Wi-Fi ahora mismo.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Bloque 2: Abrir NetGuard desde tu Celular (Códigos QR simples) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="surface-card p-5 flex flex-col sm:flex-row items-center gap-4">
       {% if net_info.qr_svg_main %}
-        <div class="w-36 h-36 bg-white p-2 rounded-2xl border border-slate-300 shadow-sm shrink-0">
+        <div class="w-32 h-32 bg-white p-2 rounded-2xl border border-slate-300 shadow-sm shrink-0">
           {{ net_info.qr_svg_main|safe }}
         </div>
       {% endif %}
-      <div class="space-y-2.5 text-center sm:text-left min-w-0 flex-1">
+      <div class="space-y-2 text-center sm:text-left min-w-0 flex-1">
         <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
           <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          Para TU Celular (Con inicio de sesión)
+          Tu Celular (Control Remoto)
         </div>
-        <h2 class="text-base font-bold theme-text-primary">Administra NetGuard desde tu Teléfono</h2>
+        <h2 class="text-base font-bold theme-text-primary">Administrar desde tu Teléfono</h2>
         <p class="text-xs theme-text-secondary leading-relaxed">
-          Escanea este QR en <strong>tu teléfono</strong> para administrar la red sin estar en la PC. Pide tu usuario y contraseña de NetGuard una vez por seguridad (marca "Recordarme").
+          Escanea este código con la cámara de tu teléfono para pausar equipos o activar modo estudio sin estar frente a la computadora.
         </p>
         <div class="flex items-center gap-2 justify-center sm:justify-start">
           <code id="mobile-url-code" class="font-mono-code text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 text-cyan-300 border border-slate-700 select-all break-all">
@@ -45,20 +166,19 @@
       </div>
     </div>
 
-    <!-- QR 2: Pantalla Cliente de Evidencia en Tiempo Real -->
-    <div class="surface-card p-5 flex flex-col sm:flex-row items-center gap-5">
+    <div class="surface-card p-5 flex flex-col sm:flex-row items-center gap-4">
       {% if net_info.qr_svg_client %}
-        <div class="w-36 h-36 bg-white p-2 rounded-2xl border border-slate-300 shadow-sm shrink-0">
+        <div class="w-32 h-32 bg-white p-2 rounded-2xl border border-slate-300 shadow-sm shrink-0">
           {{ net_info.qr_svg_client|safe }}
         </div>
       {% endif %}
-      <div class="space-y-2.5 text-center sm:text-left min-w-0 flex-1">
+      <div class="space-y-2 text-center sm:text-left min-w-0 flex-1">
         <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-700/60">
-          Para Teléfono de Prueba (SIN contraseña)
+          Para Otros Celulares (Sin clave)
         </div>
-        <h2 class="text-base font-bold theme-text-primary">Portal en Vivo para Otro Teléfono</h2>
+        <h2 class="text-base font-bold theme-text-primary">Ver Estado de Conexión</h2>
         <p class="text-xs theme-text-secondary leading-relaxed">
-          Escanea este segundo QR desde el celular de prueba o del evaluador. Entra directo <strong>sin pedir contraseña</strong> y muestra su estado por IP en vivo:
+          Cualquier miembro de la familia puede escanear este QR para saber si su dispositivo tiene internet libre, modo estudio o horario de pausa.
         </p>
         <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <code id="client-url-code" class="font-mono-code text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 text-cyan-300 border border-slate-700 select-all break-all">
@@ -72,23 +192,72 @@
     </div>
   </div>
 
-  <!-- Generador de QR para conectarse al Wi-Fi del Mini-Módem / Hotspot sin teclear contraseña -->
+  <!-- Bloque 3: Filtro en Vivo + Actividad Reciente -->
   <div class="surface-card p-5 space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
       <div>
-        <h2 class="text-base font-bold theme-text-primary">QR de Acceso Rápido al Wi-Fi (Sin teclear clave de red)</h2>
+        <h2 class="text-base font-bold theme-text-primary">Bloqueo de Apps y Videos en Celulares</h2>
         <p class="text-xs theme-text-secondary">
-          Genera un código QR estándar para que otros celulares se conecten al Wi-Fi del mini-módem o hotspot con solo apuntar la cámara (la clave no se guarda en servidor).
+          Configura este Proxy Wi-Fi en el celular de los niños para que Modo Estudio y Pausa detengan videos y redes al instante:
         </p>
       </div>
-      {% if net_info.wifi_ssid %}
-        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">
-          Wi-Fi detectado: {{ net_info.wifi_ssid }}
+      {% if proxy_status.running %}
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Activo (Puerto {{ proxy_status.port }})
         </span>
       {% endif %}
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-center">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="surface-subtle p-4 space-y-2 text-xs">
+        <div class="font-bold theme-text-primary">Cómo activarlo en 4 pasos sencillos:</div>
+        <ol class="list-decimal ml-4 space-y-1.5 theme-text-secondary leading-relaxed">
+          <li>En el teléfono que quieres cuidar, entra a los ajustes del <strong>Wi-Fi</strong>.</li>
+          <li>Toca <strong>Configurar Proxy</strong> y elige <strong>Manual</strong>.</li>
+          <li>
+            En Servidor escribe <code class="font-mono-code px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300">{{ net_info.local_ip }}</code>
+            y en Puerto <code class="font-mono-code px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300">{{ proxy_status.port }}</code>.
+          </li>
+          <li>Guarda y listo: cuando pongas <strong>Modo Estudio</strong>, <strong>Pausar</strong> o <strong>Apagar</strong>, se aplicará al momento.</li>
+        </ol>
+      </div>
+
+      <div class="surface-subtle p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold theme-text-primary">Actividad Reciente en Vivo</span>
+          <span class="text-[11px] theme-text-muted">Actualiza automático</span>
+        </div>
+        <div id="proxy-live-events" class="space-y-1.5 max-h-44 overflow-y-auto text-xs">
+          {% if proxy_status.recent_events %}
+            {% for ev in proxy_status.recent_events[:8] %}
+              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <div class="min-w-0 truncate">
+                  <span class="font-mono-code text-[11px] theme-text-muted">{{ ev.time }}</span>
+                  <strong class="theme-text-primary ml-1">{{ ev.device_name }}</strong>
+                  <span class="theme-text-secondary">&rarr;</span>
+                  <span class="font-mono-code theme-text-primary">{{ ev.host }}</span>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 {% if ev.allowed %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-rose-950 text-rose-300 border border-rose-700/60{% endif %}">
+                  {% if ev.allowed %}PERMITIDO{% else %}BLOQUEADO{% endif %}
+                </span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="py-6 text-center text-xs theme-text-muted">
+              Aún no pasan conexiones por el filtro. Configura el Proxy Manual en el teléfono y abre cualquier página.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opciones opcionales guardadas en desplegables limpios -->
+  <details class="surface-card p-4">
+    <summary class="cursor-pointer text-xs font-bold theme-text-primary hover:underline">
+      Compartir contraseña del Wi-Fi con un Código QR (Opcional)
+    </summary>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 items-center mt-4 pt-4 border-t border-slate-800">
       <form id="wifi-qr-form" class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
         <div>
           <label for="wifi_qr_ssid" class="block text-xs font-semibold theme-text-secondary mb-1">Nombre del Wi-Fi (SSID)</label>
@@ -99,7 +268,7 @@
             required
             maxlength="64"
             value="{{ net_info.wifi_ssid or '' }}"
-            placeholder="Ej. MiniModem_4G"
+            placeholder="Ej. WiFi_Casa"
             class="form-input-dark text-xs"
           />
         </div>
@@ -111,7 +280,7 @@
               id="wifi_qr_password"
               name="password"
               type="password"
-              placeholder="Clave del mini-módem"
+              placeholder="Clave del Wi-Fi"
               class="form-input-dark text-xs pr-9"
             />
             <button type="button" data-toggle-password="wifi_qr_password" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-200" title="Mostrar contraseña">
@@ -133,223 +302,39 @@
         </div>
 
         <div id="wifi-qr-error" class="sm:col-span-3 hidden text-xs text-rose-400 font-medium"></div>
-        <div class="sm:col-span-3 text-[11px] theme-text-muted leading-relaxed">
-          Al escanear este QR, Android o iPhone se conecta a la red Wi-Fi sin escribir la clave. Por restricciones de seguridad de ambos sistemas operativos, ningún QR puede alterar automáticamente el ajuste de Proxy del teléfono; si deseas filtrar videos/páginas en vivo, coloca manualmente <code class="font-mono-code">{{ net_info.local_ip }} : {{ proxy_status.port }}</code> en Proxy del Wi-Fi (o la URL automática <code class="font-mono-code">http://{{ net_info.local_ip }}:{{ net_info.port }}/network/proxy.pac</code>).
-        </div>
       </form>
 
       <div class="flex justify-center">
-        <div id="wifi-qr-preview-box" class="w-36 h-36 bg-white/95 rounded-2xl border border-slate-300 flex items-center justify-center p-2 text-center text-[11px] text-slate-500">
+        <div id="wifi-qr-preview-box" class="w-32 h-32 bg-white/95 rounded-2xl border border-slate-300 flex items-center justify-center p-2 text-center text-[11px] text-slate-500">
           Aquí aparecerá el QR de conexión Wi-Fi
         </div>
       </div>
     </div>
-  </div>
+  </details>
 
-  <!-- Bloque 2: Parámetros Reales Detectados del Módem / Mini-Módem -->
-  <div class="surface-card p-5 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-      <div>
-        <h2 class="text-base font-bold theme-text-primary">Red Wi-Fi / Mini-Módem Detectado</h2>
-        <p class="text-xs theme-text-secondary">Interfaz activa detectada automáticamente en este equipo: <strong>{{ net_info.interface_name }}</strong></p>
-      </div>
-      {% if configured_scope != net_info.network_scope and current_user.can_modify and net_info.is_lan_reachable %}
-        <form method="POST" action="{{ url_for('network.adopt_subnet') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <button type="submit" class="btn-primary text-xs">
-            Adaptar Sistema a Subred {{ net_info.network_scope }}
-          </button>
-        </form>
-      {% else %}
-        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
-          Subred Sincronizada: {{ net_info.network_scope }}
-        </span>
-      {% endif %}
-    </div>
-
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="surface-subtle p-3.5">
-        <div class="text-[11px] theme-text-muted uppercase font-semibold">IP de este Servidor</div>
-        <div class="font-mono-code font-bold text-sm sm:text-base theme-text-primary mt-0.5">{{ net_info.local_ip }}</div>
-      </div>
-      <div class="surface-subtle p-3.5">
-        <div class="text-[11px] theme-text-muted uppercase font-semibold">Puerta de Enlace (Módem)</div>
-        <div class="font-mono-code font-bold text-sm sm:text-base theme-text-primary mt-0.5">{{ net_info.gateway_ip }}</div>
-      </div>
-      <div class="surface-subtle p-3.5">
-        <div class="text-[11px] theme-text-muted uppercase font-semibold">Subred Detectada</div>
-        <div class="font-mono-code font-bold text-sm sm:text-base theme-text-primary mt-0.5">{{ net_info.network_scope }}</div>
-      </div>
-      <div class="surface-subtle p-3.5">
-        <div class="text-[11px] theme-text-muted uppercase font-semibold">Segmento Escaneado</div>
-        <div class="font-mono-code font-bold text-sm sm:text-base theme-text-primary mt-0.5">{{ net_info.scan_cidr }}</div>
-      </div>
-    </div>
-
-    {% if configured_scope != net_info.network_scope and net_info.is_lan_reachable %}
-      <div class="p-3.5 rounded-xl bg-amber-950/50 border border-amber-700/60 text-xs text-amber-200 leading-relaxed">
-        <strong>Aviso de cambio de módem:</strong> El archivo de configuración tenía <code class="font-mono-code">{{ configured_scope }}</code>, pero tu Wi-Fi o mini-módem actual trabaja en <code class="font-mono-code">{{ net_info.network_scope }}</code>. Al presionar <strong>"Adaptar Sistema a Subred {{ net_info.network_scope }}"</strong> o registrar un equipo desde abajo, el sistema usará automáticamente el rango real de tu mini-módem.
-      </div>
-    {% endif %}
-  </div>
-
-  <!-- Bloque 2.5: Intermediario Real de Red (Corte y Filtrado en Tiempo Real via Proxy Wi-Fi) -->
-  <div class="surface-card p-5 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-      <div>
-        <h2 class="text-base font-bold theme-text-primary">Intermediario Real de Tráfico Web (Corte y Filtrado en Vivo)</h2>
-        <p class="text-xs theme-text-secondary">
-          Para que el bloqueo, Pausa Temporal, Modo Estudio e Intermitencia corten físicamente videos y páginas en el teléfono de prueba:
-        </p>
-      </div>
-      {% if proxy_status.running %}
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Intermediario Activo (Puerto {{ proxy_status.port }})
-        </span>
-      {% else %}
-        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-950 text-amber-300 border border-amber-700/60">
-          Intermediario en espera (iniciar con run.py)
-        </span>
-      {% endif %}
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="surface-subtle p-4 space-y-2.5 text-xs">
-        <div class="font-bold theme-text-primary">Configuración rápida en el teléfono de prueba (10 segundos):</div>
-        <ol class="list-decimal ml-4 space-y-1.5 theme-text-secondary leading-relaxed">
-          <li>En el teléfono cliente (Android o iPhone conectado al mismo Wi-Fi), abre las propiedades de esa red Wi-Fi.</li>
-          <li>En <strong>Proxy</strong> cambia de <em>Ninguno</em> a <strong>Manual</strong>.</li>
-          <li>
-            Escribe Servidor: <code class="font-mono-code px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300">{{ net_info.local_ip }}</code>
-            &nbsp;y Puerto: <code class="font-mono-code px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300">{{ proxy_status.port }}</code>.
-          </li>
-          <li>Guarda cambios. Desde ese instante, cuando actives <strong>Bloquear</strong>, <strong>Pausar</strong>, <strong>Modo Estudio</strong> o <strong>Intermitencia</strong>, NetGuard detiene realmente las páginas y videos en el navegador y apps de ese teléfono.</li>
-        </ol>
-      </div>
-
-      <div class="surface-subtle p-4 space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold theme-text-primary">Actividad Interceptada en Tiempo Real</span>
-          <span class="text-[11px] theme-text-muted">Auto-actualizable (cada 2.5s)</span>
-        </div>
-        <div id="proxy-live-events" class="space-y-1.5 max-h-44 overflow-y-auto text-xs">
-          {% if proxy_status.recent_events %}
-            {% for ev in proxy_status.recent_events[:8] %}
-              <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded bg-slate-900/60 border border-slate-800">
-                <div class="min-w-0 truncate">
-                  <span class="font-mono-code text-[11px] theme-text-muted">{{ ev.time }}</span>
-                  <strong class="theme-text-primary ml-1">{{ ev.device_name }}</strong>
-                  <span class="theme-text-secondary">&rarr;</span>
-                  <span class="font-mono-code theme-text-primary">{{ ev.host }}</span>
-                </div>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold shrink-0 {% if ev.allowed %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-rose-950 text-rose-300 border border-rose-700/60{% endif %}">
-                  {% if ev.allowed %}PERMITIDO{% else %}BLOQUEADO{% endif %}
-                </span>
-              </div>
-            {% endfor %}
-          {% else %}
-            <div class="py-6 text-center text-xs theme-text-muted">
-              Aún no pasan conexiones por el puerto {{ proxy_status.port }}. Configura el Proxy Manual en el teléfono de prueba y abre YouTube o Google.
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bloque 3: Descubrimiento de Equipos Conectados en Tiempo Real -->
-  <div class="surface-card p-5 space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-      <div>
-        <h2 class="text-base font-bold theme-text-primary">Equipos Detectados en el Wi-Fi / Mini-Módem</h2>
-        <p id="scan-status-subtitle" class="text-xs theme-text-secondary">
-          Caché ARP inicial cargada (<span id="scan-online-count">{{ initial_scan.online_count }}</span> activos, <span id="scan-total-count">{{ initial_scan.discovered|length }}</span> visibles a las {{ initial_scan.scanned_at }}). Presiona Escanear para sondear dispositivos nuevos por ICMP.
-        </p>
-      </div>
-      <button type="button" id="btn-live-scan" class="btn-primary text-xs shrink-0">
-        Escanear Mini-Módem / Wi-Fi (Barrido ICMP)
-      </button>
-    </div>
-
-    <div id="discovered-devices-grid" data-can-modify="{{ 'true' if current_user.can_modify else 'false' }}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {% for host in initial_scan.discovered %}
-        <div class="surface-subtle p-4 flex flex-col justify-between space-y-3 border {% if host.is_online %}border-emerald-700/50{% else %}border-slate-800{% endif %}" data-host-ip="{{ host.ip_address }}">
-          <div class="space-y-2">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <div class="font-bold text-sm theme-text-primary truncate">
-                  {% if host.registered_device %}
-                    {{ host.registered_device.name }}
-                  {% else %}
-                    {{ host.suggested_name }}
-                  {% endif %}
-                </div>
-                <div class="font-mono-code text-xs theme-text-secondary mt-0.5">{{ host.ip_address }}</div>
-              </div>
-              <span class="host-online-badge px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 {% if host.is_online %}bg-emerald-950 text-emerald-300 border border-emerald-700/60{% else %}bg-slate-800 theme-text-muted{% endif %}">
-                {% if host.is_online %}
-                  En línea{% if host.latency_ms is not none %} ({{ host.latency_ms }} ms){% endif %}
-                {% else %}
-                  ARP en reposo
-                {% endif %}
-              </span>
-            </div>
-
-            <div class="text-xs theme-text-muted space-y-1">
-              <div>MAC Física: <span class="font-mono-code theme-text-secondary">{{ host.mac_address or 'Local / Sin caché ARP' }}</span></div>
-              <div class="flex flex-wrap gap-1.5 pt-0.5">
-                {% if host.is_this_server %}
-                  <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-950 text-blue-300 border border-blue-800/60">Esta PC Servidor</span>
-                {% elif host.is_gateway %}
-                  <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800/60">Módem / Gateway</span>
-                {% endif %}
-                {% if host.registered_device %}
-                  <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700/60">
-                    Registrado: {{ host.registered_device.internal_code }} ({{ host.registered_device.admin_status_label }})
-                  </span>
-                {% else %}
-                  <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 theme-text-secondary">
-                    Sin registrar en NetGuard
-                  </span>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-
-          <div class="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-            <button type="button" class="btn-secondary text-xs py-1.5 px-2.5 btn-ping-host" data-ip="{{ host.ip_address }}">
-              Probar Ping
-            </button>
-            {% if host.registered_device %}
-              <a href="{{ url_for('devices.detail', device_id=host.registered_device.id) }}" class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center">
-                Administrar Equipo
-              </a>
-            {% elif current_user.can_modify and not host.is_gateway %}
-              <a
-                href="{{ url_for('devices.create', ip=host.ip_address, mac=host.mac_address or '', hostname=host.hostname or '', scope=net_info.network_scope, name=host.suggested_name, device_type=host.suggested_type) }}"
-                class="btn-primary text-xs py-1.5 px-2.5 flex-1 text-center"
-              >
-                + Registrar Equipo
-              </a>
-            {% endif %}
-          </div>
-        </div>
-      {% else %}
-        <div class="col-span-full py-8 text-center text-xs theme-text-muted border border-dashed border-slate-800 rounded-xl">
-          Presiona "Escanear Mini-Módem / Wi-Fi" para buscar los dispositivos conectados en este momento.
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Nota de Transparencia Académica -->
+  <!-- Detalles técnicos de red guardados fuera de vista principal -->
   <details class="surface-card p-4 text-xs theme-text-secondary">
-    <summary class="cursor-pointer font-bold theme-text-primary hover:underline">
-      Alcance técnico de pruebas con Mini-Módem en demostración de coloquio
+    <summary class="cursor-pointer font-semibold theme-text-secondary hover:underline">
+      Ver datos técnicos de esta red Wi-Fi (IP, módem y subred)
     </summary>
-    <p class="mt-2 leading-relaxed">
-      El descubrimiento de equipos (lectura de tabla ARP física y barrido ICMP), la medición de latencia por Ping, el acceso multi-usuario por Wi-Fi desde teléfonos y la evaluación de acceso por IP en <code class="font-mono-code">/network/mi-acceso</code> operan en tiempo real sobre la red local del mini-módem. Las directivas generadas para router (DHCP, ACL L3 e intermitencia) permanecen claramente diferenciadas en modo <strong>Simulador de Laboratorio</strong> dado que un mini-módem comercial celular no expone un API programable como OpenWrt o MikroTik RouterOS.
-    </p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-3 border-t border-slate-800">
+      <div class="surface-subtle p-3">
+        <div class="text-[11px] theme-text-muted uppercase font-semibold">IP de este Servidor</div>
+        <div class="font-mono-code font-bold text-sm theme-text-primary mt-0.5">{{ net_info.local_ip }}</div>
+      </div>
+      <div class="surface-subtle p-3">
+        <div class="text-[11px] theme-text-muted uppercase font-semibold">Puerta de Enlace (Módem)</div>
+        <div class="font-mono-code font-bold text-sm theme-text-primary mt-0.5">{{ net_info.gateway_ip }}</div>
+      </div>
+      <div class="surface-subtle p-3">
+        <div class="text-[11px] theme-text-muted uppercase font-semibold">Subred Detectada</div>
+        <div class="font-mono-code font-bold text-sm theme-text-primary mt-0.5">{{ net_info.network_scope }}</div>
+      </div>
+      <div class="surface-subtle p-3">
+        <div class="text-[11px] theme-text-muted uppercase font-semibold">Interfaz Activa</div>
+        <div class="font-semibold text-xs theme-text-primary mt-0.5 truncate">{{ net_info.interface_name }}</div>
+      </div>
+    </div>
   </details>
 
 </div>
